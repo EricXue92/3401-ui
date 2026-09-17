@@ -260,8 +260,21 @@
       }
       .ge-body {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 1.25fr 1.25fr 1fr;
         gap: 0;
+      }
+      .ge-item.news {
+        border-left: 3px solid var(--up);
+      }
+      .ge-new {
+        background: var(--up);
+        color: #fff;
+        border-radius: 4px;
+        padding: 0 4px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 4px;
+        vertical-align: middle;
       }
       @media (max-width: 1100px) {
         .ge-body {
@@ -1442,6 +1455,17 @@
             </div>
           </div>
           <div class="ge-col">
+            <div class="ge-col-title" style="color: #b91c1c">
+              🚨 突发播报
+              <span style="font-weight: 400; color: var(--muted)"
+                >(最近 24h · 最新在前 · 战争/政策/总统表态)</span
+              >
+            </div>
+            <div class="ge-scroll" id="geBreaking">
+              <div class="ge-empty">加载中…</div>
+            </div>
+          </div>
+          <div class="ge-col">
             <div class="ge-col-title">
               未来 14 天
               <span style="font-weight: 400; color: var(--muted)"
@@ -1923,7 +1947,35 @@
         const j = state.ge;
         if (!j) return;
         renderGlobalToday(j);
+        renderGlobalBreaking(j);
         renderGlobalCalendar(j);
+      }
+      function geNewsHtml(e, refMs) {
+        const t = Date.parse(String(e.time || "").replace(" ", "T"));
+        const isNew = isFinite(t) && refMs - t < 30 * 60000;
+        const md = String(e.time || "").slice(5, 10);
+        return `<div class="ge-item news" data-json="${encodeURIComponent(JSON.stringify(e))}">
+    <span class="ge-time" title="${escapeHtml(e.time || "")}">${md} ${hhmm(e.time)}</span>
+    <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
+    <span class="ge-time">${stars4(e.importance)}</span>
+    <span class="ge-title" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}${isNew ? '<span class="ge-new">NEW</span>' : ""}</span>
+    <span class="ge-meta"><span class="ge-src">${GE_SRC[e.source] || escapeHtml(e.source || "")}</span></span>
+  </div>`;
+      }
+      function renderGlobalBreaking(j) {
+        const b = document.getElementById("geBreaking");
+        const list = j.breaking || [];
+        if (!list.length) {
+          b.classList.remove("scrolling");
+          b.innerHTML = '<div class="ge-empty">最近 24 小时暂无重大突发</div>';
+          return;
+        }
+        const refMs = Date.parse(String(j.time_hkt || "").replace(" ", "T")) || Date.now();
+        const h = list.map((e) => geNewsHtml(e, refMs)).join("");
+        b.innerHTML = `<div class="ge-track">${h}</div><div class="ge-track" aria-hidden="true">${h}</div>`;
+        b.style.setProperty("--ge-dur", list.length * 3 + "s");
+        b.classList.toggle("scrolling", list.length > 6);
+        geBind(b);
       }
       function renderGlobalToday(j) {
         const bad = Object.entries(j.sources || {})

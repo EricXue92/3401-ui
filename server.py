@@ -1351,6 +1351,22 @@ _GE_EXCLUDED_CATEGORIES = {"tech_event", "other"}
 
 def _ge_is_major(it):
     return int(it.get("importance") or 0) >= _GE_MIN_IMPORTANCE and it.get("category") not in _GE_EXCLUDED_CATEGORIES
+
+
+# 🚨 突发播报 (用户要求 2026-09-17): 最近 24h 的突发快讯, 只要地缘/金融风险/能源/央行/中国政策类且 ≥3 星,
+# 或标题命中"总统/战争"类关键词 (总统推文由见闻/财联社/Google News 转述), 按时间倒序。
+_GE_BREAKING_CATEGORIES = {"geopolitics", "fin_risk", "energy_supply", "central_bank", "cn_policy"}
+_GE_BREAKING_MIN_IMPORTANCE = 3
+_GE_BREAKING_MAX = 30
+_GE_BREAKING_KEYWORDS = _re.compile(
+    r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|战争|开战|宣战|袭击|空袭|导弹|爆炸|停火|"
+    r"紧急状态|Pentagon|invasion|airstrike|declares war|state of emergency", _re.I)
+
+
+def _ge_is_breaking_news(it):
+    if _GE_BREAKING_KEYWORDS.search(it.get("title") or ""):
+        return True
+    return it.get("category") in _GE_BREAKING_CATEGORIES and int(it.get("importance") or 0) >= _GE_BREAKING_MIN_IMPORTANCE
 _GE_COLS = ("kind, category, title, summary, country, event_time, importance, heat_base, heat_score, "
             "reading_num, expected, previous, actual, tickers, source, url")
 
@@ -1457,7 +1473,7 @@ def api_global_events():
         extra_policy = []
     extra = extra_earnings + extra_policy
 
-    today, upcoming = [], {}
+    today, upcoming, breaking = [], {}, []
     for r in sched:
         try:
             it = _ge_row(r, now)
@@ -1478,6 +1494,8 @@ def api_global_events():
             continue
         if it["heat"] >= _GE_BREAKING_MIN_HEAT and _ge_is_major(it):
             today.append(it)
+        if _ge_is_breaking_news(it):
+            breaking.append(it)
     for it in extra:
         et = _ge_dt(it["time"])
         if et < end:
@@ -1489,8 +1507,11 @@ def api_global_events():
     for k in upcoming:
         upcoming[k].sort(key=lambda x: x["time"])
     upcoming = dict(sorted(upcoming.items()))
+    breaking.sort(key=lambda x: x["time"], reverse=True)
+    breaking = breaking[:_GE_BREAKING_MAX]
     return jsonify({"time_hkt": _iso(now), "window_start": _iso(start), "window_end": _iso(end),
-                    "days": days, "today": today, "upcoming": upcoming, "sources": _ge_load_health()})
+                    "days": days, "today": today, "upcoming": upcoming, "breaking": breaking,
+                    "sources": _ge_load_health()})
 
 
 # ═══ A-to-A: 放量事件接收 API (from 3404) ═══

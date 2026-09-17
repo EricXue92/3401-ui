@@ -142,6 +142,10 @@ class BoostTest(unittest.TestCase):
     def test_tech_event_unchanged(self):
         self.assertEqual(boost_importance("华为全联接大会 2026（上海）", "中国", 4), 4)
 
+    def test_trump_statements(self):
+        self.assertEqual(categorize("特朗普在Truth Social发文称将对欧盟商品加征关税"), "geopolitics")
+        self.assertEqual(categorize("特朗普：美联储应立即降息"), "central_bank")   # 央行规则在前
+
     def test_election_is_geopolitics(self):
         self.assertEqual(categorize("美国 11 月 3 日中期选举"), "geopolitics")
 

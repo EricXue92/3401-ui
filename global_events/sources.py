@@ -310,6 +310,7 @@ GNEWS_QUERIES = [
     ("fin_risk", 'default OR bankruptcy OR "bank run" OR downgrade OR "credit crisis"'),
     ("cn_policy", 'China Politburo OR "State Council" OR PBOC OR "China stimulus"'),
     ("earnings", "Nvidia OR Apple OR Microsoft OR Alphabet OR Amazon OR Meta OR Tesla OR Broadcom OR TSMC"),
+    ("geopolitics", 'Trump OR "White House" OR "Truth Social" OR Pentagon OR invasion OR airstrike'),
 ]
 
 

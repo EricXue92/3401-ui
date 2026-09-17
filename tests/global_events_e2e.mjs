@@ -71,6 +71,10 @@ const payload = {
       }),
     ],
   },
+  breaking: [
+    mk(200, { title: "特朗普宣布对欧盟加征关税", category: "geopolitics", time: "2026-09-17 15:10:00", importance: 3 }),
+    mk(201, { title: "某地发生爆炸", category: "geopolitics", time: "2026-09-17 12:00:00", importance: 3 }),
+  ],
   sources: {
     wscn_calendar: { ok: true },
     wscn_live: { ok: true },
@@ -182,6 +186,10 @@ assert(
     await page.$eval("#modalBody", (e) => e.textContent),
   ),
 );
+const brk = await page.$$eval("#geBreaking .ge-track:first-child .ge-item", (els) => els.map((e) => e.textContent));
+assert("突发播报 2 条", brk.length === 2, String(brk.length));
+assert("10 分钟前的标 NEW", /NEW/.test(brk[0]) && /特朗普/.test(brk[0]), brk[0]);
+assert("3 小时前的不标 NEW", !/NEW/.test(brk[1]), brk[1]);
 await page.screenshot({
   path: path.join(OUT, "global_events_panel.png"),
   fullPage: false,

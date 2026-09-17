@@ -130,6 +130,24 @@ class GlobalEventsApiTest(unittest.TestCase):
         self.assertEqual([x["title"] for x in j["today"]], ["沙特管道遇袭"])
         self.assertEqual(list(j["upcoming"].keys()), ["2026-10-02"])
 
+    def test_breaking_news_panel(self):
+        rows = {"breaking": [
+            _row(kind="breaking", title="某国宣布进入紧急状态", category="other", importance=2,
+                 event_time="2026-09-17 15:10:00", heat_base=30, heat_score=30),          # 关键词命中 → 入
+            _row(kind="breaking", title="沙特输油管道遇袭", category="energy_supply", importance=3,
+                 event_time="2026-09-17 14:00:00", heat_base=60, heat_score=60),          # 类别+3星 → 入
+            _row(kind="breaking", title="欧洲央行管委讲话", category="central_bank", importance=2,
+                 event_time="2026-09-17 14:30:00", heat_base=30, heat_score=30),          # 2 星 → 不入
+            _row(kind="breaking", title="午间涨停分析", category="other", importance=4,
+                 event_time="2026-09-17 12:00:00", heat_base=80, heat_score=80),          # other 无关键词 → 不入
+            _row(kind="breaking", title="特朗普：将对欧盟加征关税", category="geopolitics", importance=4,
+                 event_time="2026-09-17 13:00:00", heat_base=90, heat_score=90),
+        ]}
+        j = self._get(rows)
+        self.assertEqual([x["title"] for x in j["breaking"]],
+                         ["某国宣布进入紧急状态", "沙特输油管道遇袭", "特朗普：将对欧盟加征关税"])   # 时间倒序
+        self.assertEqual([x["title"] for x in j["today"]], ["特朗普：将对欧盟加征关税"])       # 今日列表仍按 4 星规则
+
     def test_db_failure_returns_empty_not_500(self):
         with mock.patch.object(server, "now_hkt", return_value=NOW), \
              mock.patch.object(server.db, "query", return_value=[]), \
@@ -140,6 +158,7 @@ class GlobalEventsApiTest(unittest.TestCase):
         j = json.loads(r.data.decode("utf-8"))
         self.assertEqual(j["today"], [])
         self.assertEqual(j["upcoming"], {})
+        self.assertEqual(j["breaking"], [])
 
     def test_window_before_0600_uses_previous_settlement_day(self):
         early = datetime(2026, 9, 17, 3, 0, 0)
