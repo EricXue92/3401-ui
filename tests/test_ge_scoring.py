@@ -16,6 +16,18 @@ class SurpriseTest(unittest.TestCase):
         self.assertIsNone(SC.surprise_pct("abc", "1"))
         self.assertIsNone(SC.surprise_pct("1", None))
 
+    def test_thousands_separated(self):
+        self.assertAlmostEqual(SC.surprise_pct("9,500", "10,200"), 7.368, places=2)
+
+    def test_num_thousands(self):
+        self.assertEqual(SC._num("150,000"), 150000.0)
+
+    def test_num_units_ignored(self):
+        self.assertEqual(SC._num("8.3K"), 8.3)
+
+    def test_num_first_number_wins(self):
+        self.assertEqual(SC._num("3-0-6"), 3.0)
+
 
 class HeatScheduledTest(unittest.TestCase):
     def test_fomc_us(self):

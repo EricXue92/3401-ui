@@ -21,7 +21,8 @@ _CJK = re.compile(r"[一-鿿]")
 def _num(v):
     if v is None:
         return None
-    m = _NUM.search(str(v))
+    s = re.sub(r"(?<=\d),(?=\d)", "", str(v))
+    m = _NUM.search(s)
     return float(m.group()) if m else None
 
 
