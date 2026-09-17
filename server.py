@@ -1356,15 +1356,19 @@ def _ge_is_major(it):
 # 🚨 突发播报 (用户要求 2026-09-17): 最近 24h 的突发快讯, 只要地缘/金融风险/能源/央行/中国政策类且 ≥3 星,
 # 或标题命中"总统/战争"类关键词 (总统推文由见闻/财联社/Google News 转述), 按时间倒序。
 _GE_BREAKING_CATEGORIES = {"geopolitics", "fin_risk", "energy_supply", "central_bank", "cn_policy"}
-_GE_BREAKING_MIN_IMPORTANCE = 3
+_GE_BREAKING_MIN_IMPORTANCE = 4      # 用户要求 (2026-09-17): 突发只看 4 星, 但关税/战争/政策/总统表态关键词命中的一律保留
+_GE_BREAKING_GNEWS_MIN_IMPORTANCE = 3   # Google News 单篇 (2 星) 噪音大, 关键词命中也要求 ≥10 篇聚簇 (3 星)
 _GE_BREAKING_MAX = 30
 # 硬关键词: 战争/关税/制裁/袭击 — 即使只有 2 星 (Google News 单篇) 也进
 _GE_BREAKING_HARD = _re.compile(
-    r"战争|开战|宣战|袭击|空袭|导弹|爆炸|停火|紧急状态|关税|制裁|封锁|军事行动|"
+    r"战争|开战|宣战|袭击|遇袭|轰炸|空袭|开火|冲突升级|导弹|爆炸|停火|紧急状态|关税|制裁|封锁|军事行动|"
     r"invasion|airstrike|declares war|state of emergency|tariff|sanction|ceasefire|missile|blockade", _re.I)
-# 人物关键词: 总统/领导人表态 — 需 ≥3 星 (多源同报/财联社 B 级以上) 才进, 避免"特朗普谈犯罪"这类无关报道
+# 人物关键词: 总统/领导人表态
 _GE_BREAKING_PERSON = _re.compile(
     r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|Pentagon", _re.I)
+# 政策动作关键词: 国务院/发改委/财政部/央行决议/降准/行政令/刺激方案
+_GE_BREAKING_POLICY = _re.compile(
+    r"国务院|发改委|财政部|政治局|利率决议|降准|行政令|刺激计划|刺激方案|executive order|stimulus|rate decision", _re.I)
 _GE_BREAKING_DEDUP_SIM = 0.6
 # 栏目性/汇总性条目, 不是事件本身
 _GE_BREAKING_EXCLUDE = _re.compile(r"^提醒[：:]|新闻精选|涨停分析|早报|晚报|午评|收评|盘前|复盘|一图|一文|日历|Daily Open|Morning Brief", _re.I)
@@ -1375,12 +1379,15 @@ def _ge_is_breaking_news(it):
     imp = int(it.get("importance") or 0)
     if _GE_BREAKING_EXCLUDE.search(title):
         return False
-    # 中文快讯源 (见闻/财联社) 命中硬关键词即进; Google News 单篇 (2 星) 噪音大, 必须是 ≥10 篇聚簇 (3 星)
-    if it.get("source") != "gnews" and _GE_BREAKING_HARD.search(title):
+    kw_hit = (_GE_BREAKING_HARD.search(title) or _GE_BREAKING_PERSON.search(title)
+              or _GE_BREAKING_POLICY.search(title)) is not None
+    if kw_hit:
+        # 关键词命中: 中文快讯源直接进; Google News 单篇需 ≥10 篇聚簇。展示上按 4 星处理。
+        if it.get("source") == "gnews" and imp < _GE_BREAKING_GNEWS_MIN_IMPORTANCE:
+            return False
+        it["importance"] = max(imp, 4)
         return True
-    if imp < _GE_BREAKING_MIN_IMPORTANCE:
-        return False
-    return it.get("category") in _GE_BREAKING_CATEGORIES or _GE_BREAKING_PERSON.search(title) is not None
+    return imp >= _GE_BREAKING_MIN_IMPORTANCE and it.get("category") in _GE_BREAKING_CATEGORIES
 
 
 def _ge_dedupe_breaking(items):

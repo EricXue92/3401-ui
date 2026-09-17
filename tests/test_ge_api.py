@@ -131,38 +131,43 @@ class GlobalEventsApiTest(unittest.TestCase):
         self.assertEqual(list(j["upcoming"].keys()), ["2026-10-02"])
 
     def test_breaking_news_panel(self):
+        B = lambda **kw: _row(kind="breaking", heat_base=60, heat_score=60, **kw)
         rows = {"breaking": [
-            _row(kind="breaking", title="某国宣布进入紧急状态", category="other", importance=2,
-                 event_time="2026-09-17 15:10:00", heat_base=30, heat_score=30),          # 关键词命中 → 入
-            _row(kind="breaking", title="沙特输油管道遇袭", category="energy_supply", importance=3,
-                 event_time="2026-09-17 14:00:00", heat_base=60, heat_score=60),          # 类别+3星 → 入
-            _row(kind="breaking", title="欧洲央行管委讲话", category="central_bank", importance=2,
-                 event_time="2026-09-17 14:30:00", heat_base=30, heat_score=30),          # 2 星 → 不入
-            _row(kind="breaking", title="午间涨停分析", category="other", importance=4,
-                 event_time="2026-09-17 12:00:00", heat_base=80, heat_score=80),          # other 无关键词 → 不入
-            _row(kind="breaking", title="特朗普：将对欧盟加征关税", category="geopolitics", importance=4,
-                 event_time="2026-09-17 13:00:00", heat_base=90, heat_score=90),
-            _row(kind="breaking", title="Trump emphasizes crime in midterm push", category="geopolitics", importance=2,
-                 event_time="2026-09-17 13:30:00", heat_base=30, heat_score=30),        # 人物词 + 2 星, 无硬词 → 不入
-            _row(kind="breaking", title="沙特输油管道遇袭事件最新进展", category="energy_supply", importance=3,
-                 event_time="2026-09-17 14:05:00", heat_base=60, heat_score=60),          # 与 14:00 那条相似 → 只留最新
-            _row(kind="breaking", title="Squadron refurbishes missile suspension system", category="geopolitics",
-                 importance=2, source="gnews", event_time="2026-09-17 14:31:00", heat_base=30, heat_score=30),  # gnews 2 星硬词 → 不入
-            _row(kind="breaking", title="Russian missile strike on Kyiv injures 12", category="geopolitics",
-                 importance=3, source="gnews", event_time="2026-09-17 14:32:00", heat_base=60, heat_score=60),  # gnews 聚簇 3 星 → 入
-            _row(kind="breaking", title="习近平就发展先进制造业作出重要指示", category="cn_policy",
-                 importance=3, source="cls_hot", event_time="2026-09-17 12:12:00", heat_base=60, heat_score=60),
-            _row(kind="breaking", title="习近平就发展先进制造业作出重要指示强调 持续做大做强先进制造业 为推进中国式现代化提供有力支撑",
-                 category="cn_policy", importance=3, source="wscn_live", event_time="2026-09-17 12:13:00", heat_base=60, heat_score=60),
-            _row(kind="breaking", title="提醒：日内请重点关注（以下均为北京时间）", category="central_bank",
-                 importance=3, source="wscn_live", event_time="2026-09-17 14:33:00", heat_base=50, heat_score=50),  # 栏目 → 不入
+            B(title="某国宣布进入紧急状态", category="other", importance=2, source="wscn_live",
+              event_time="2026-09-17 15:10:00"),                                   # 硬词 → 入, 显示 4 星
+            B(title="Squadron refurbishes missile suspension system", category="geopolitics", importance=2,
+              source="gnews", event_time="2026-09-17 15:05:00"),                   # gnews 单篇 → 不入
+            B(title="Russian missile strike on Kyiv injures 12", category="geopolitics", importance=3,
+              source="gnews", event_time="2026-09-17 15:00:00"),                   # gnews 聚簇 + 硬词 → 入
+            B(title="提醒：日内请重点关注（以下均为北京时间）", category="central_bank", importance=4,
+              source="wscn_live", event_time="2026-09-17 14:50:00"),               # 栏目 → 不入
+            B(title="国务院常务会议部署稳增长政策", category="cn_policy", importance=2, source="cls_roll",
+              event_time="2026-09-17 14:40:00"),                                   # 政策词 → 入
+            B(title="摩根士丹利预计美联储2027年3月加息", category="central_bank", importance=3, source="cls_roll",
+              event_time="2026-09-17 14:30:00"),                                   # 3 星无关键词 → 不入
+            B(title="沙特输油管道遇袭", category="energy_supply", importance=3, source="cls_roll",
+              event_time="2026-09-17 14:00:00"),
+            B(title="沙特输油管道遇袭事件最新进展", category="energy_supply", importance=3, source="cls_roll",
+              event_time="2026-09-17 14:05:00"),                                   # 与上一条相似 → 只留最新
+            B(title="Trump emphasizes crime in midterm push", category="geopolitics", importance=2,
+              source="gnews", event_time="2026-09-17 13:30:00"),                   # gnews 单篇人物词 → 不入
+            B(title="特朗普：将对欧盟加征关税", category="geopolitics", importance=4, source="cls_hot",
+              event_time="2026-09-17 13:00:00"),
+            B(title="习近平就发展先进制造业作出重要指示", category="cn_policy", importance=3, source="cls_hot",
+              event_time="2026-09-17 12:12:00"),
+            B(title="习近平就发展先进制造业作出重要指示强调 持续做大做强先进制造业 为推进中国式现代化提供有力支撑",
+              category="cn_policy", importance=3, source="wscn_live", event_time="2026-09-17 12:13:00"),  # 前缀重复 → 留最新
+            B(title="某银行流动性危机 挤兑", category="fin_risk", importance=4, source="cls_roll",
+              event_time="2026-09-17 11:00:00"),                                   # 4 星类别 → 入
         ]}
         j = self._get(rows)
-        self.assertEqual([x["title"] for x in j["breaking"]],
-                         ["某国宣布进入紧急状态", "Russian missile strike on Kyiv injures 12",
-                          "沙特输油管道遇袭事件最新进展", "特朗普：将对欧盟加征关税",
-                          "习近平就发展先进制造业作出重要指示强调 持续做大做强先进制造业 为推进中国式现代化提供有力支撑"])   # 时间倒序; 习近平长短两条只留最新(长)的
-        self.assertEqual([x["title"] for x in j["today"]], ["特朗普：将对欧盟加征关税"])       # 今日列表仍按 4 星规则
+        self.assertEqual([x["title"] for x in j["breaking"]], [
+            "某国宣布进入紧急状态", "Russian missile strike on Kyiv injures 12", "国务院常务会议部署稳增长政策",
+            "沙特输油管道遇袭事件最新进展", "特朗普：将对欧盟加征关税",
+            "习近平就发展先进制造业作出重要指示强调 持续做大做强先进制造业 为推进中国式现代化提供有力支撑",
+            "某银行流动性危机 挤兑"])
+        self.assertTrue(all(x["importance"] == 4 for x in j["breaking"]))         # 关键词命中的按 4 星显示
+        self.assertEqual([x["title"] for x in j["today"]], ["特朗普：将对欧盟加征关税", "某银行流动性危机 挤兑"])
 
     def test_db_failure_returns_empty_not_500(self):
         with mock.patch.object(server, "now_hkt", return_value=NOW), \
