@@ -1366,12 +1366,17 @@ _GE_BREAKING_HARD = _re.compile(
 _GE_BREAKING_PERSON = _re.compile(
     r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|Pentagon", _re.I)
 _GE_BREAKING_DEDUP_SIM = 0.6
+# 栏目性/汇总性条目, 不是事件本身
+_GE_BREAKING_EXCLUDE = _re.compile(r"^提醒[：:]|新闻精选|涨停分析|早报|晚报|午评|收评|盘前|复盘|一图|一文|日历|Daily Open|Morning Brief", _re.I)
 
 
 def _ge_is_breaking_news(it):
     title = it.get("title") or ""
     imp = int(it.get("importance") or 0)
-    if _GE_BREAKING_HARD.search(title):
+    if _GE_BREAKING_EXCLUDE.search(title):
+        return False
+    # 中文快讯源 (见闻/财联社) 命中硬关键词即进; Google News 单篇 (2 星) 噪音大, 必须是 ≥10 篇聚簇 (3 星)
+    if it.get("source") != "gnews" and _GE_BREAKING_HARD.search(title):
         return True
     if imp < _GE_BREAKING_MIN_IMPORTANCE:
         return False

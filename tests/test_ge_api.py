@@ -146,10 +146,17 @@ class GlobalEventsApiTest(unittest.TestCase):
                  event_time="2026-09-17 13:30:00", heat_base=30, heat_score=30),        # 人物词 + 2 星, 无硬词 → 不入
             _row(kind="breaking", title="沙特输油管道遇袭事件最新进展", category="energy_supply", importance=3,
                  event_time="2026-09-17 14:05:00", heat_base=60, heat_score=60),          # 与 14:00 那条相似 → 只留最新
+            _row(kind="breaking", title="Squadron refurbishes missile suspension system", category="geopolitics",
+                 importance=2, source="gnews", event_time="2026-09-17 14:31:00", heat_base=30, heat_score=30),  # gnews 2 星硬词 → 不入
+            _row(kind="breaking", title="Russian missile strike on Kyiv injures 12", category="geopolitics",
+                 importance=3, source="gnews", event_time="2026-09-17 14:32:00", heat_base=60, heat_score=60),  # gnews 聚簇 3 星 → 入
+            _row(kind="breaking", title="提醒：日内请重点关注（以下均为北京时间）", category="central_bank",
+                 importance=3, source="wscn_live", event_time="2026-09-17 14:33:00", heat_base=50, heat_score=50),  # 栏目 → 不入
         ]}
         j = self._get(rows)
         self.assertEqual([x["title"] for x in j["breaking"]],
-                         ["某国宣布进入紧急状态", "沙特输油管道遇袭事件最新进展", "特朗普：将对欧盟加征关税"])   # 时间倒序
+                         ["某国宣布进入紧急状态", "Russian missile strike on Kyiv injures 12",
+                          "沙特输油管道遇袭事件最新进展", "特朗普：将对欧盟加征关税"])   # 时间倒序 (15:10 > 14:32 > 14:05 > 13:00)
         self.assertEqual([x["title"] for x in j["today"]], ["特朗普：将对欧盟加征关税"])       # 今日列表仍按 4 星规则
 
     def test_db_failure_returns_empty_not_500(self):
