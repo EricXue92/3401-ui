@@ -46,7 +46,9 @@ const payload = {
             expected: "2.9",
             actual: "3.1",
           }
-        : {},
+        : i === 1
+          ? { url: "javascript:alert(1)" }
+          : {},
     ),
   ),
   upcoming: {
@@ -153,6 +155,27 @@ await page.waitForSelector("#modalMask.show");
 assert(
   "点击打开 modal 含原文链接",
   await page.$eval("#modalBody", (e) => /查看原文/.test(e.textContent)),
+);
+await page.click("#modalClose");
+await page.click(
+  "#geToday .ge-track:first-child .ge-item:nth-child(2)",
+);
+await page.waitForSelector("#modalMask.show");
+assert(
+  "javascript: 链接不渲染为可点击 <a>",
+  await page.$eval(
+    "#modalBody",
+    (e) =>
+      !Array.from(e.querySelectorAll("a")).some((a) =>
+        a.getAttribute("href").startsWith("javascript:"),
+      ),
+  ),
+);
+assert(
+  "javascript: url 以纯文本展示",
+  /javascript:alert\(1\)/.test(
+    await page.$eval("#modalBody", (e) => e.textContent),
+  ),
 );
 await page.screenshot({
   path: path.join(OUT, "global_events_panel.png"),

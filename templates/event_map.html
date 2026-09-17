@@ -1697,6 +1697,16 @@
           (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
         );
       }
+      function safeHttpUrl(u) {
+        try {
+          const p = new URL(String(u || ""), location.origin);
+          return p.protocol === "http:" || p.protocol === "https:"
+            ? p.href
+            : "";
+        } catch (e) {
+          return "";
+        }
+      }
       function stars(imp) {
         imp = Number(imp);
         if (!imp || imp < 1) return "";
@@ -1868,9 +1878,10 @@
         const p = Math.max(0, Math.min(100, Number(e.heat) || 0));
         const ev =
           e.expected != null || e.actual != null
-            ? `<span class="ev">预期 ${fmt(e.expected)} / 实际 ${fmt(e.actual)}</span>`
+            ? `<span class="ev">预期 ${escapeHtml(fmt(e.expected))} / 实际 ${escapeHtml(fmt(e.actual))}</span>`
             : "";
-        return `<div class="ge-item ${e.kind}" data-json="${encodeURIComponent(JSON.stringify(e))}">
+        const kind = e.kind === "scheduled" ? "scheduled" : "breaking";
+        return `<div class="ge-item ${kind}" data-json="${encodeURIComponent(JSON.stringify(e))}">
     <span class="ge-heat" style="--p:${p}%">${Math.round(p)}</span>
     <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
     <span class="ge-time">${hhmm(e.time)}</span>
@@ -2369,12 +2380,16 @@
         if (e.asset_class) rows += kv("资产类别", e.asset_class);
         if (e.heat != null) rows += kv("热度", e.heat);
         if (e.summary) rows += kv("摘要", escapeHtml(e.summary), true);
-        if (e.url)
+        if (e.url) {
+          const safeUrl = safeHttpUrl(e.url);
           rows += kv(
             "原文",
-            `<a href="${escapeHtml(e.url)}" target="_blank" rel="noopener">查看原文 ↗</a>`,
+            safeUrl
+              ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener">查看原文 ↗</a>`
+              : escapeHtml(e.url),
             true,
           );
+        }
         if (e.source) rows += kv("数据源", escapeHtml(e.source), true);
         b.innerHTML = rows || '<div class="empty">无详情</div>';
         document.getElementById("modalMask").classList.add("show");
