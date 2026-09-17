@@ -61,20 +61,27 @@ def categorize(title, tickers=None):
 
 
 # 核心宏观事件: 无论来源打几星, 一律提升到 4 星 (用户要求只看 4 星及以上, 但见闻把非农/CPI 标 3 星)。
+# 只提升"主指标": 讲话/出席/纪要/票委/子项 (环比初值修正、消费支出金额等) 不提升。
 # (国家集合或 None=不限, 标题正则)
 KEY_MACRO_PATTERNS = [
-    ({"美国", "USD"}, re.compile(r"非农|失业率|Non-?Farm|Unemployment Rate|Payrolls", re.I)),
-    ({"美国", "USD"}, re.compile(r"(?<![A-Za-z])(CPI|PCE|GDP)(?![A-Za-z])")),
-    (None, re.compile(r"联邦基金利率|美联储.*(利率决议|议息)|FOMC|Federal Funds Rate", re.I)),
-    ({"美国", "USD"}, re.compile(r"ISM\s*制造业|ISM Manufacturing", re.I)),
-    ({"中国", "CNY"}, re.compile(r"官方制造业PMI|贷款市场报价利率|LPR|Manufacturing PMI", re.I)),
-    (None, re.compile(r"政治局|中央经济工作会议|欧洲央行.*(利率决议|议息)|日本央行.*(利率决议|议息)|英国央行.*(利率决议|政策利率)|Main Refinancing Rate|BOJ Policy Rate|Official Bank Rate")),
+    ({"美国", "USD"}, re.compile(r"非农就业人口|失业率|Non-?Farm Employment|Unemployment Rate", re.I)),
+    ({"美国", "USD"}, re.compile(r"(?<![A-Za-z])(核心)?CPI(同比|环比| m/m| y/y)", re.I)),
+    ({"美国", "USD"}, re.compile(r"PCE物价指数(同比|环比)|Core PCE Price Index", re.I)),
+    ({"美国", "USD"}, re.compile(r"实际GDP年化季环比初值|Advance GDP", re.I)),
+    ({"美国", "USD"}, re.compile(r"ISM(制造业|非制造业|服务业)PMI|ISM (Manufacturing|Services) PMI", re.I)),
+    (None, re.compile(r"联邦基金利率|美联储利率决议|FOMC(声明|利率|会议$)|Federal Funds Rate|FOMC Statement", re.I)),
+    ({"中国", "CNY"}, re.compile(r"官方制造业PMI|贷款市场报价利率|(?<![A-Za-z])LPR(?![A-Za-z])|^Manufacturing PMI$", re.I)),
+    (None, re.compile(r"政治局|中央经济工作会议|(欧洲|日本|英国|中国)央行.*(利率决议|议息会议|政策利率)"
+                      r"|Main Refinancing Rate|BOJ Policy Rate|Official Bank Rate")),
 ]
+_NO_BOOST = re.compile(r"讲话|发表|出席|听证|票委|纪要|Speaks|Testif|Minutes", re.I)
 
 
 def boost_importance(title, country, importance):
-    """命中核心宏观事件 → 4; 否则原值。"""
+    """命中核心宏观事件 → 4; 否则原值。讲话/纪要类永不提升。"""
     text = title or ""
+    if _NO_BOOST.search(text):
+        return int(importance or 1)
     for countries, pat in KEY_MACRO_PATTERNS:
         if countries is not None and (country or "") not in countries:
             continue

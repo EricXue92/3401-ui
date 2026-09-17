@@ -40,6 +40,14 @@ class MergeFfTest(unittest.TestCase):
         self.assertEqual(len(out), 2)
         self.assertEqual(out[1]["source"], "ff_calendar")
 
+    def test_central_bank_same_settlement_day_is_duplicate(self):
+        w = [ev(title="日本央行9月议息会议", country="日本", category="central_bank", event_time=datetime(2026, 9, 18, 12, 2))]
+        f = [ev(title="日本央行利率决议", country="日本", category="central_bank", event_time=datetime(2026, 9, 18, 10, 30), source="ff_calendar", importance=4),
+             ev(title="日本央行利率决议", country="日本", category="central_bank", event_time=datetime(2026, 9, 19, 10, 30), source="ff_calendar", importance=4)]
+        out = merge_ff_into_wscn(w, f)
+        self.assertEqual(len(out), 2)                       # 同交割日的被丢弃, 次日的保留
+        self.assertEqual(out[1]["event_time"], datetime(2026, 9, 19, 10, 30))
+
     def test_window_boundary(self):
         w = [ev(title="CPI 环比", country="加拿大", category="inflation", event_time=datetime(2026, 9, 14, 20, 30))]
         near = ev(title="CPI m/m", country="加拿大", category="inflation",

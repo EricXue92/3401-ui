@@ -130,6 +130,15 @@ class BoostTest(unittest.TestCase):
         self.assertEqual(boost_importance("英国央行政策利率", "英国", 3), 4)
         self.assertEqual(boost_importance("欧洲央行管委雷恩发表讲话", "英国", 1), 1)   # 讲话不提升
 
+    def test_speeches_and_subitems_not_boosted(self):
+        self.assertEqual(boost_importance("2027年FOMC票委、芝加哥联储主席古尔斯比发表讲话。", "美国", 1), 1)
+        self.assertEqual(boost_importance("FOMC会议纪要", "美国", 3), 3)
+        self.assertEqual(boost_importance("8月实际个人消费支出(PCE)环比", "美国", 2), 2)
+        self.assertEqual(boost_importance("二季度GDP平减指数年化季环比终值", "美国", 2), 2)
+        self.assertEqual(boost_importance("二季度实际GDP年化季环比终值", "美国", 3), 3)
+        self.assertEqual(boost_importance("二季度实际GDP年化季环比初值", "美国", 3), 4)
+        self.assertEqual(boost_importance("8月核心PCE物价指数同比", "美国", 2), 4)
+
     def test_tech_event_unchanged(self):
         self.assertEqual(boost_importance("华为全联接大会 2026（上海）", "中国", 4), 4)
 
