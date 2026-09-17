@@ -74,6 +74,10 @@ const payload = {
   breaking: [
     mk(200, { title: "特朗普宣布对欧盟加征关税", category: "geopolitics", time: "2026-09-17 15:10:00", importance: 3 }),
     mk(201, { title: "某地发生爆炸", category: "geopolitics", time: "2026-09-17 12:00:00", importance: 3 }),
+    // 再补 5 条 (共 7 条, 300px 面板刚好放得下): 放得下就不该开跑马灯, 否则循环接缝 (最旧→最新) 常驻视野, 像排序错了
+    ...[10, 9, 8, 7, 6].map((h, i) =>
+      mk(210 + i, { title: `旧突发 ${i}`, category: "geopolitics", time: `2026-09-17 ${String(h).padStart(2, "0")}:00:00`, importance: 3 }),
+    ),
   ],
   sources: {
     wscn_calendar: { ok: true },
@@ -187,9 +191,17 @@ assert(
   ),
 );
 const brk = await page.$$eval("#geBreaking .ge-track:first-child .ge-item", (els) => els.map((e) => e.textContent));
-assert("突发播报 2 条", brk.length === 2, String(brk.length));
+assert("突发播报 7 条", brk.length === 7, String(brk.length));
 assert("10 分钟前的标 NEW", /NEW/.test(brk[0]) && /特朗普/.test(brk[0]), brk[0]);
 assert("3 小时前的不标 NEW", !/NEW/.test(brk[1]), brk[1]);
+assert(
+  "突发 7 条放得下时不滚动 (无循环接缝)",
+  await page.$eval("#geBreaking", (e) => !e.classList.contains("scrolling") && e.querySelector(".ge-track").offsetHeight <= e.clientHeight),
+);
+assert(
+  "今日 10 条放不下时第二轨末尾有接缝分隔",
+  await page.$eval("#geToday", (e) => e.classList.contains("scrolling") && !!e.querySelector(".ge-track .ge-seam")),
+);
 await page.screenshot({
   path: path.join(OUT, "global_events_panel.png"),
   fullPage: false,

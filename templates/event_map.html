@@ -318,6 +318,15 @@
       .ge-scroll:not(.scrolling) .ge-track + .ge-track {
         display: none;
       }
+      /* 跑马灯循环接缝: 最旧一条之后接回最新一条, 画一条虚线让人看出是从头循环, 不是排序乱了 */
+      .ge-seam {
+        border-top: 1px dashed #a5b4fc;
+        margin: 2px 6px;
+        height: 0;
+      }
+      .ge-scroll:not(.scrolling) .ge-seam {
+        display: none;
+      }
       @keyframes ge-up {
         from {
           transform: translateY(0);
@@ -1970,11 +1979,17 @@
           return;
         }
         const refMs = Date.parse(String(j.time_hkt || "").replace(" ", "T")) || Date.now();
-        const h = list.map((e) => geNewsHtml(e, refMs)).join("");
-        b.innerHTML = `<div class="ge-track">${h}</div><div class="ge-track" aria-hidden="true">${h}</div>`;
-        b.style.setProperty("--ge-dur", list.length * 3 + "s");
-        b.classList.toggle("scrolling", list.length > 6);
+        geFillScroll(b, list.map((e) => geNewsHtml(e, refMs)).join(""), list.length);
         geBind(b);
+      }
+      function geFillScroll(el, h, n) {
+        // 两条相同轨道 + translateY(-50%) 做无缝循环; 只有整列放不下面板才开跑马灯。
+        // 之前按条数 (>6) 开滚: 7 条其实放得下, 一滚就把循环接缝 (最旧→最新) 常驻在视野里, 看起来像时间排序错了。
+        el.innerHTML = `<div class="ge-track">${h}<div class="ge-seam"></div></div><div class="ge-track" aria-hidden="true">${h}<div class="ge-seam"></div></div>`;
+        el.style.setProperty("--ge-dur", n * 3 + "s");
+        el.classList.remove("scrolling");   // 先按不滚动量高度 (接缝/第二轨此时隐藏)
+        const track = el.querySelector(".ge-track");
+        el.classList.toggle("scrolling", track.offsetHeight > el.clientHeight);
       }
       function renderGlobalToday(j) {
         const bad = Object.entries(j.sources || {})
@@ -1992,10 +2007,7 @@
           t.classList.remove("scrolling");
           t.innerHTML = '<div class="ge-empty">今日暂无重大事件</div>';
         } else {
-          const h = today.map(geItemHtml).join("");
-          t.innerHTML = `<div class="ge-track">${h}</div><div class="ge-track" aria-hidden="true">${h}</div>`;
-          t.style.setProperty("--ge-dur", today.length * 3 + "s");
-          t.classList.toggle("scrolling", today.length > 6);
+          geFillScroll(t, today.map(geItemHtml).join(""), today.length);
           geBind(t);
         }
       }
