@@ -185,3 +185,184 @@ def fetch_ff_calendar():
     except Exception as e:
         print("WARN ff_calendar nextweek: %s" % str(e).splitlines()[0])
     return evs
+
+
+# ── S2 华尔街见闻 7x24 快讯 ─────────────────────────────────────────────────
+def _title_from(title, body, limit=80):
+    t = _s(title, 255)
+    if t:
+        return t
+    b = (body or "").strip()
+    return b[:limit] if b else None
+
+
+def parse_wscn_live(payload):
+    out = []
+    items = ((payload or {}).get("data") or {}).get("items") or []
+    for it in items:
+        body = (it.get("content_text") or "").strip()
+        title = _title_from(it.get("title"), body)
+        if not title or it.get("display_time") is None:
+            continue
+        out.append(_event(
+            kind="breaking", category=categorize(title + " " + body[:120]), title=title,
+            summary=body or None, event_time=ts_to_hkt(it["display_time"]),
+            importance=normalize_importance("wscn_live", it.get("score")),
+            source="wscn_live", source_id=str(it.get("id")), url=_s(it.get("uri"), 512),
+            dedup_key=make_dedup_key("wscn_live", it.get("id")),
+        ))
+    return out
+
+
+def fetch_wscn_live(limit=50):
+    url = "%s?channel=global-channel&limit=%d" % (WSCN_LIVE_URL, int(limit))
+    return parse_wscn_live(http_json(url))
+
+
+# ── S3 / S4 财联社 ───────────────────────────────────────────────────────────
+_CLS_PREFIX = re.compile(r"^【[^】]*】|^财联社\d{1,2}月\d{1,2}日电[，,]?")
+
+
+def _cls_clean(text):
+    """去掉开头的【标题】与 "财联社X月X日电，" 前缀 (两者可能连续出现, 循环剥离)。"""
+    t = (text or "").strip()
+    while True:
+        t2 = _CLS_PREFIX.sub("", t, count=1).strip()
+        if t2 == t:
+            return t
+        t = t2
+
+
+def parse_cls_roll(payload):
+    out = []
+    items = ((payload or {}).get("data") or {}).get("roll_data") or []
+    for it in items:
+        body = _cls_clean(it.get("content") or it.get("brief"))
+        title = _s(it.get("title"), 255) or (body[:80] if body else None)
+        if not title or it.get("ctime") is None:
+            continue
+        out.append(_event(
+            kind="breaking", category=categorize(title + " " + body[:120]), title=title,
+            summary=body or None, event_time=ts_to_hkt(it["ctime"]),
+            importance=normalize_importance("cls_roll", it.get("level")),
+            reading_num=int(it.get("reading_num") or 0) or None,
+            source="cls_roll", source_id=str(it.get("id")), url=_s(it.get("shareurl"), 512),
+            dedup_key=make_dedup_key("cls_roll", it.get("id")),
+        ))
+    return out
+
+
+def fetch_cls_roll(rn=50, now_ts=None):
+    import time as _t
+    qs = cls_signed_query({"rn": str(int(rn)), "lastTime": str(int(now_ts or _t.time()))})
+    return parse_cls_roll(http_json(CLS_ROLL_URL + "?" + qs, headers=CLS_HEADERS))
+
+
+def parse_cls_hot(payload):
+    out = []
+    items = (payload or {}).get("data") or []
+    for rank, it in enumerate(items):
+        title = _s(it.get("title"), 255)
+        if not title or it.get("ctime") is None:
+            continue
+        out.append(_event(
+            kind="breaking", category=categorize(title), title=title,
+            summary=_s(it.get("brief"), 500), event_time=ts_to_hkt(it["ctime"]),
+            importance=normalize_importance("cls_hot", rank),
+            reading_num=int(it.get("readNum") or 0) or None, tickers=_s(it.get("stocks"), 255),
+            source="cls_hot", source_id=str(it.get("id")), url="https://www.cls.cn/detail/%s" % it.get("id"),
+            dedup_key=make_dedup_key("cls_hot", it.get("id")),
+        ))
+    return out
+
+
+def fetch_cls_hot():
+    return parse_cls_hot(http_json(CLS_HOT_URL + "?" + cls_signed_query({}), headers=CLS_HEADERS))
+
+
+# ── S5 Google News RSS ───────────────────────────────────────────────────────
+GNEWS_QUERIES = [
+    ("central_bank", 'Fed OR FOMC OR ECB OR "Bank of Japan" OR "rate decision"'),
+    ("geopolitics", "tariff OR sanctions OR ceasefire OR missile OR airstrike"),
+    ("energy_supply", 'OPEC OR "oil prices" OR pipeline OR "Strait of Hormuz"'),
+    ("fin_risk", 'default OR bankruptcy OR "bank run" OR downgrade OR "credit crisis"'),
+    ("cn_policy", 'China Politburo OR "State Council" OR PBOC OR "China stimulus"'),
+    ("earnings", "Nvidia OR Apple OR Microsoft OR Alphabet OR Amazon OR Meta OR Tesla OR Broadcom OR TSMC"),
+]
+
+
+_RSS_ITEM = re.compile(r"<item>(.*?)</item>", re.S)
+
+
+def _rss_tag(block, tag):
+    """取 <tag ...>text</tag> 文本 (去 CDATA, 反转义); 无则 ''。不用 xml.etree (XXE 风险, 且无需完整解析)。"""
+    m = re.search(r"<%s(?:\s[^>]*)?>(.*?)</%s>" % (tag, tag), block, re.S)
+    if not m:
+        return ""
+    t = m.group(1).strip()
+    if t.startswith("<![CDATA[") and t.endswith("]]>"):
+        t = t[9:-3]
+    return html.unescape(t).strip()
+
+
+def parse_gnews(xml_text, category_hint):
+    out = []
+    for block in _RSS_ITEM.findall(xml_text or ""):
+        raw_title = _rss_tag(block, "title")
+        pub = _rss_tag(block, "pubDate")
+        guid = _rss_tag(block, "guid")
+        if not raw_title or not pub:
+            continue
+        # Google News 标题尾部带 " - 来源名"
+        if " - " in raw_title:
+            title, src_name = raw_title.rsplit(" - ", 1)
+        else:
+            title, src_name = raw_title, None
+        src_name = _rss_tag(block, "source") or src_name
+        cat = categorize(title)
+        if cat == "other":
+            cat = category_hint
+        out.append(_event(
+            kind="breaking", category=cat, title=title.strip(), summary=src_name,
+            event_time=rfc822_to_hkt(pub), importance=normalize_importance("gnews", 1), reading_num=1,
+            source="gnews", source_id=guid or None, url=_s(_rss_tag(block, "link"), 512),
+            dedup_key=make_dedup_key("gnews", guid or title),
+        ))
+    return out
+
+
+def fetch_gnews():
+    """6 组查询各取 24h 内条目; 部分失败容忍, 全部失败抛最后异常。返回未聚簇条目。"""
+    evs, ok, last_err = [], 0, None
+    for cat, q in GNEWS_QUERIES:
+        url = "%s?q=%s&hl=en-US&gl=US&ceid=US:en" % (GNEWS_URL, urllib.parse.quote(q + " when:1d"))
+        try:
+            evs.extend(parse_gnews(http_get(url).decode("utf-8"), cat))
+            ok += 1
+        except Exception as e:
+            last_err = e
+            print("WARN gnews %s: %s" % (cat, str(e).splitlines()[0]))
+    if ok == 0 and last_err is not None:
+        raise last_err
+    return evs
+
+
+# ── S6 DailyHotApi (可选) ────────────────────────────────────────────────────
+DAILYHOT_BOARDS = ("weibo", "baidu", "toutiao")
+
+
+def fetch_dailyhot(base_url):
+    """返回热榜标题列表; base_url 为空 → []; 单榜失败只打印。"""
+    if not base_url:
+        return []
+    titles = []
+    for board in DAILYHOT_BOARDS:
+        try:
+            j = http_json("%s/%s" % (base_url.rstrip("/"), board))
+            for it in (j or {}).get("data") or []:
+                t = _s(it.get("title"), 255)
+                if t:
+                    titles.append(t)
+        except Exception as e:
+            print("WARN dailyhot %s: %s" % (board, str(e).splitlines()[0]))
+    return titles
