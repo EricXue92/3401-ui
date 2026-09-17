@@ -265,7 +265,7 @@
       }
       .ge-item.news {
         border-left: 3px solid var(--up);
-        grid-template-columns: 78px 20px 44px 1fr auto;
+        grid-template-columns: 78px 20px 1fr auto;
       }
       .ge-new {
         background: var(--up);
@@ -1470,7 +1470,7 @@
             <div class="ge-col-title">
               未来 14 天
               <span style="font-weight: 400; color: var(--muted)"
-                >(红=重大 金=重要 灰=一般)</span
+                >(点 = 当天重大事件数)</span
               >
             </div>
             <div class="ge-cal" id="geCal"></div>
@@ -1911,7 +1911,7 @@
     <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
     <span class="ge-time">${hhmm(e.time)}</span>
     <span class="ge-title" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}${ev}</span>
-    <span class="ge-meta"><span class="star">${stars4(e.importance)}</span><span class="ge-src">${GE_SRC[e.source] || escapeHtml(e.source || "")}</span></span>
+    <span class="ge-meta"><span class="ge-src">${GE_SRC[e.source] || escapeHtml(e.source || "")}</span></span>
   </div>`;
       }
       function geBind(container) {
@@ -1958,7 +1958,6 @@
         return `<div class="ge-item news" data-json="${encodeURIComponent(JSON.stringify(e))}">
     <span class="ge-time" title="${escapeHtml(e.time || "")}">${md} ${hhmm(e.time)}</span>
     <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
-    <span class="ge-time">${stars4(e.importance)}</span>
     <span class="ge-title" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}${isNew ? '<span class="ge-new">NEW</span>' : ""}</span>
     <span class="ge-meta"><span class="ge-src">${GE_SRC[e.source] || escapeHtml(e.source || "")}</span></span>
   </div>`;
