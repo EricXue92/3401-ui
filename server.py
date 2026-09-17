@@ -1344,6 +1344,13 @@ from global_events.health import load_health as _ge_load_health
 
 _GE_TODAY_MAX = 40
 _GE_BREAKING_MIN_HEAT = 20.0
+# 用户要求 (2026-09-17): 只显示 4 星及以上, 且科技发布会/展会/未分类一律不显示 (采集照常, 只在展示层过滤)
+_GE_MIN_IMPORTANCE = 4
+_GE_EXCLUDED_CATEGORIES = {"tech_event", "other"}
+
+
+def _ge_is_major(it):
+    return int(it.get("importance") or 0) >= _GE_MIN_IMPORTANCE and it.get("category") not in _GE_EXCLUDED_CATEGORIES
 _GE_COLS = ("kind, category, title, summary, country, event_time, importance, heat_base, heat_score, "
             "reading_num, expected, previous, actual, tickers, source, url")
 
@@ -1459,9 +1466,9 @@ def api_global_events():
             print(f"[WARN] global_events row skipped: {str(e).splitlines()[0]}")
             continue
         if et < end:
-            if it["importance"] >= 2:
+            if _ge_is_major(it):
                 today.append(it)
-        elif it["importance"] >= 3:
+        elif _ge_is_major(it):
             upcoming.setdefault(_ge_settle_key(et), []).append(it)
     for r in brk:
         try:
@@ -1469,7 +1476,7 @@ def api_global_events():
         except Exception as e:
             print(f"[WARN] global_events row skipped: {str(e).splitlines()[0]}")
             continue
-        if it["heat"] >= _GE_BREAKING_MIN_HEAT:
+        if it["heat"] >= _GE_BREAKING_MIN_HEAT and _ge_is_major(it):
             today.append(it)
     for it in extra:
         et = _ge_dt(it["time"])

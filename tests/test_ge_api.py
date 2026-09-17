@@ -16,7 +16,7 @@ NOW = datetime(2026, 9, 17, 15, 20, 0)
 
 
 def _row(**kw):
-    base = {"kind": "scheduled", "category": "other", "title": "t", "summary": None, "country": None,
+    base = {"kind": "scheduled", "category": "central_bank", "title": "t", "summary": None, "country": None,
             "event_time": "2026-09-17 20:30:00", "importance": 2, "heat_base": 30, "heat_score": 30,
             "reading_num": None, "expected": None, "previous": None, "actual": None, "tickers": None,
             "source": "wscn_calendar", "url": None}
@@ -52,27 +52,27 @@ class GlobalEventsApiTest(unittest.TestCase):
 
     def test_window_and_split(self):
         rows = {"scheduled": [
-            _row(title="今日 imp2", event_time="2026-09-17 20:30:00", importance=2, heat_score=30),
-            _row(title="今日 imp1 过滤", event_time="2026-09-17 21:00:00", importance=1, heat_score=10),
-            _row(title="明日 imp3", event_time="2026-09-18 07:30:00", importance=3, heat_score=60),
-            _row(title="明日 imp2 过滤", event_time="2026-09-18 08:00:00", importance=2, heat_score=30),
+            _row(title="今日 imp4", event_time="2026-09-17 20:30:00", importance=4, heat_score=95),
+            _row(title="今日 imp3 过滤", event_time="2026-09-17 21:00:00", importance=3, heat_score=60),
+            _row(title="明日 imp4", event_time="2026-09-18 07:30:00", importance=4, heat_score=95),
+            _row(title="明日 imp3 过滤", event_time="2026-09-18 08:00:00", importance=3, heat_score=60),
         ]}
         j = self._get(rows)
         self.assertEqual(j["window_start"], "2026-09-17 06:00:00")
         self.assertEqual(j["window_end"], "2026-09-18 06:00:00")
-        self.assertEqual([x["title"] for x in j["today"]], ["今日 imp2"])
+        self.assertEqual([x["title"] for x in j["today"]], ["今日 imp4"])
         self.assertEqual(list(j["upcoming"].keys()), ["2026-09-18"])
-        self.assertEqual([x["title"] for x in j["upcoming"]["2026-09-18"]], ["明日 imp3"])
+        self.assertEqual([x["title"] for x in j["upcoming"]["2026-09-18"]], ["明日 imp4"])
         self.assertEqual(j["days"], 14)
 
     def test_breaking_decay_and_threshold_and_sort(self):
         rows = {
             "scheduled": [_row(title="排程", event_time="2026-09-17 20:30:00", importance=4, heat_score=95)],
             "breaking": [
-                _row(kind="breaking", title="新鲜", event_time="2026-09-17 15:20:00", heat_base=80, heat_score=80, source="wscn_live"),
-                _row(kind="breaking", title="三小时前", event_time="2026-09-17 12:20:00", heat_base=80, heat_score=80, source="wscn_live"),
-                _row(kind="breaking", title="太旧", event_time="2026-09-17 03:20:00", heat_base=100, heat_score=100, source="wscn_live"),
-                _row(kind="breaking", title="未来", event_time="2026-09-18 03:00:00", heat_base=100, heat_score=100, source="wscn_live"),
+                _row(kind="breaking", importance=4, title="新鲜", event_time="2026-09-17 15:20:00", heat_base=80, heat_score=80, source="wscn_live"),
+                _row(kind="breaking", importance=4, title="三小时前", event_time="2026-09-17 12:20:00", heat_base=80, heat_score=80, source="wscn_live"),
+                _row(kind="breaking", importance=4, title="太旧", event_time="2026-09-17 03:20:00", heat_base=100, heat_score=100, source="wscn_live"),
+                _row(kind="breaking", importance=4, title="未来", event_time="2026-09-18 03:00:00", heat_base=100, heat_score=100, source="wscn_live"),
             ],
         }
         j = self._get(rows)
@@ -105,11 +105,30 @@ class GlobalEventsApiTest(unittest.TestCase):
         self.assertEqual(j["days"], 14)
 
     def test_today_capped_at_40(self):
-        rows = {"scheduled": [_row(title="e%d" % i, event_time="2026-09-17 20:30:00", importance=2, heat_score=i)
+        rows = {"scheduled": [_row(title="e%d" % i, event_time="2026-09-17 20:30:00", importance=4, heat_score=i)
                               for i in range(60)]}
         j = self._get(rows)
         self.assertEqual(len(j["today"]), 40)
         self.assertEqual(j["today"][0]["title"], "e59")
+
+    def test_only_four_star_major_categories_shown(self):
+        rows = {
+            "scheduled": [
+                _row(title="华为全联接大会", category="tech_event", importance=4, event_time="2026-09-17 12:02:00", heat_score=90),
+                _row(title="东博会", category="other", importance=3, event_time="2026-09-17 12:02:00", heat_score=65),
+                _row(title="恒生科技指数调整", category="other", importance=4, event_time="2026-09-18 00:00:00", heat_score=90),
+                _row(title="云栖大会", category="tech_event", importance=4, event_time="2026-09-22 12:02:00", heat_score=90),
+                _row(title="非农", category="jobs", importance=4, event_time="2026-10-02 20:30:00", heat_score=100),
+            ],
+            "breaking": [
+                _row(kind="breaking", title="午间涨停分析", category="other", importance=4, event_time="2026-09-17 15:00:00", heat_base=80, heat_score=80),
+                _row(kind="breaking", title="美联储加息", category="central_bank", importance=3, event_time="2026-09-17 15:00:00", heat_base=80, heat_score=80),
+                _row(kind="breaking", title="沙特管道遇袭", category="energy_supply", importance=4, event_time="2026-09-17 15:00:00", heat_base=80, heat_score=80),
+            ],
+        }
+        j = self._get(rows)
+        self.assertEqual([x["title"] for x in j["today"]], ["沙特管道遇袭"])
+        self.assertEqual(list(j["upcoming"].keys()), ["2026-10-02"])
 
     def test_db_failure_returns_empty_not_500(self):
         with mock.patch.object(server, "now_hkt", return_value=NOW), \
@@ -155,8 +174,8 @@ class GlobalEventsApiTest(unittest.TestCase):
 
     def test_malformed_row_skipped_not_500(self):
         rows = {"scheduled": [
-            _row(title="好行", event_time="2026-09-17 20:30:00", importance=2, heat_score=30),
-            _row(title="坏行", event_time="garbage", importance=2, heat_score=30),
+            _row(title="好行", event_time="2026-09-17 20:30:00", importance=4, heat_score=30),
+            _row(title="坏行", event_time="garbage", importance=4, heat_score=30),
         ]}
         j = self._get(rows)
         self.assertEqual([x["title"] for x in j["today"]], ["好行"])

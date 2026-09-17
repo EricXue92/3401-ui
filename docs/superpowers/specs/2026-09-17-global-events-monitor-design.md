@@ -222,6 +222,7 @@ DailyHotApi 部署（可选，P2 末尾）：`docker run -d --name dailyhot -p 6
 
 规则：
 
+- 展示过滤（2026-09-17 用户要求）：只显示 importance = 4 且 category ∉ {tech_event, other} 的事件；核心宏观事件（美国非农/CPI/PCE/GDP/ISM、美联储/欧央行/日央行/英央行利率决议、中国官方制造业 PMI/LPR、政治局会议）在解析时固定提升为 4 星（`classify.boost_importance`）。数据照常全量采集，过滤只在 API 层。
 - `today` = 当前结算窗口（沿用 `settlement_window`，HKT 06:00 → 次日 06:00）内的 scheduled（importance ≥ 2）∪ 最近 24h 的 breaking（heat ≥ 20）∪ S7 巨头财报 ∪ S8 政策事件，按 `heat` 降序，最多 40 条。
 - `upcoming` = 明天起 `days` 天内的 scheduled（importance ≥ 3）∪ S7 ∪ S8，按日期分组，每天按时间排序。`days` 上限 30。
 - 只读库和 JSON 文件，不请求外网；breaking 热度按读取时刻衰减。任何来源不可用都不返回 500，只在 `sources` 里标 `ok:false`。

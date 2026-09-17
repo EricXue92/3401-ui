@@ -29,7 +29,7 @@ CATEGORY_RULES = [
     ("growth", ["GDP", "PMI", "零售销售", "工业产出", "消费者信心", "retail sales"]),
     ("earnings", ["财报", "业绩", "电话会", "指引", "earnings", "guidance"]),
     ("geopolitics", ["冲突", "袭击", "空袭", "停火", "制裁", "关税", "战争", "封锁", "导弹",
-                     "ceasefire", "strike", "strikes", "sanction", "sanctions", "tariff", "tariffs",
+                     "选举", "大选", "ceasefire", "strike", "strikes", "sanction", "sanctions", "tariff", "tariffs", "election",
                      "missile", "invasion", "war"]),
     ("energy_supply", ["原油", "OPEC", "管道", "航运", "停产", "天然气", "港口",
                        "oil", "pipeline", "shipping", "natural gas", "output cut"]),
@@ -58,6 +58,29 @@ def categorize(title, tickers=None):
     if mega_tickers_in(text, tickers):
         return "earnings"
     return "other"
+
+
+# 核心宏观事件: 无论来源打几星, 一律提升到 4 星 (用户要求只看 4 星及以上, 但见闻把非农/CPI 标 3 星)。
+# (国家集合或 None=不限, 标题正则)
+KEY_MACRO_PATTERNS = [
+    ({"美国", "USD"}, re.compile(r"非农|失业率|Non-?Farm|Unemployment Rate|Payrolls", re.I)),
+    ({"美国", "USD"}, re.compile(r"(?<![A-Za-z])(CPI|PCE|GDP)(?![A-Za-z])")),
+    (None, re.compile(r"联邦基金利率|美联储.*(利率决议|议息)|FOMC|Federal Funds Rate", re.I)),
+    ({"美国", "USD"}, re.compile(r"ISM\s*制造业|ISM Manufacturing", re.I)),
+    ({"中国", "CNY"}, re.compile(r"官方制造业PMI|贷款市场报价利率|LPR|Manufacturing PMI", re.I)),
+    (None, re.compile(r"政治局|中央经济工作会议|欧洲央行.*(利率决议|议息)|日本央行.*(利率决议|议息)|英国央行.*(利率决议|政策利率)|Main Refinancing Rate|BOJ Policy Rate|Official Bank Rate")),
+]
+
+
+def boost_importance(title, country, importance):
+    """命中核心宏观事件 → 4; 否则原值。"""
+    text = title or ""
+    for countries, pat in KEY_MACRO_PATTERNS:
+        if countries is not None and (country or "") not in countries:
+            continue
+        if pat.search(text):
+            return 4
+    return int(importance or 1)
 
 
 def normalize_importance(source, raw):

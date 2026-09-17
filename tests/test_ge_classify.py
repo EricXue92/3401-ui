@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from global_events.classify import (categorize, normalize_importance,
+from global_events.classify import (categorize, normalize_importance, boost_importance,
                                     mega_tickers_in, CATEGORIES)
 
 
@@ -108,6 +108,33 @@ class ImportanceTest(unittest.TestCase):
 
     def test_unknown_source(self):
         self.assertEqual(normalize_importance("whatever", "x"), 1)
+
+
+class BoostTest(unittest.TestCase):
+    def test_core_us_macro_boosted(self):
+        self.assertEqual(boost_importance("9月非农就业人口变动(万人)", "美国", 3), 4)
+        self.assertEqual(boost_importance("8月CPI同比", "美国", 3), 4)
+        self.assertEqual(boost_importance("8月核心PCE物价指数同比", "美国", 2), 4)
+        self.assertEqual(boost_importance("Federal Funds Rate", "USD", 4), 4)
+
+    def test_non_us_cpi_not_boosted(self):
+        self.assertEqual(boost_importance("8月核心调和CPI同比终值", "欧元区", 2), 2)
+
+    def test_china_core(self):
+        self.assertEqual(boost_importance("9月官方制造业PMI", "中国", 3), 4)
+        self.assertEqual(boost_importance("9月一年期贷款市场报价利率(LPR)", "中国", 3), 4)
+        self.assertEqual(boost_importance("9月RatingDog制造业PMI", "中国", 3), 3)
+
+    def test_central_bank_decisions(self):
+        self.assertEqual(boost_importance("日本央行9月议息会议", "日本", 4), 4)
+        self.assertEqual(boost_importance("英国央行政策利率", "英国", 3), 4)
+        self.assertEqual(boost_importance("欧洲央行管委雷恩发表讲话", "英国", 1), 1)   # 讲话不提升
+
+    def test_tech_event_unchanged(self):
+        self.assertEqual(boost_importance("华为全联接大会 2026（上海）", "中国", 4), 4)
+
+    def test_election_is_geopolitics(self):
+        self.assertEqual(categorize("美国 11 月 3 日中期选举"), "geopolitics")
 
 
 class MegaTest(unittest.TestCase):

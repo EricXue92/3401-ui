@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-from .classify import categorize, normalize_importance, load_static
+from .classify import categorize, normalize_importance, boost_importance, load_static
 
 NET_TIMEOUT = 10
 UA_HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -119,7 +119,8 @@ def parse_wscn_calendar(payload):
             out.append(_event(
                 kind="scheduled", category=categorize(title), title=title,
                 country=_s(it.get("country"), 32), event_time=ts_to_hkt(it["public_date"]),
-                importance=normalize_importance("wscn_calendar", it.get("importance")),
+                importance=boost_importance(title, _s(it.get("country"), 32),
+                                            normalize_importance("wscn_calendar", it.get("importance"))),
                 expected=_s(it.get("forecast")), previous=_s(it.get("previous")), actual=_s(it.get("actual")),
                 source="wscn_calendar", source_id=str(it.get("id")), url=_s(it.get("uri"), 1024),
                 dedup_key=make_dedup_key("wscn_calendar", it.get("id")),
@@ -175,7 +176,8 @@ def parse_ff_calendar(items):
             out.append(_event(
                 kind="scheduled", category=categorize(raw_title + " " + title), title=title,
                 country=FF_COUNTRY.get(code, code or None), event_time=iso_to_hkt(it["date"]),
-                importance=imp, expected=_s(it.get("forecast")), previous=_s(it.get("previous")),
+                importance=boost_importance(raw_title + " " + title, code, imp),
+                expected=_s(it.get("forecast")), previous=_s(it.get("previous")),
                 source="ff_calendar", source_id=None, url=None,
                 dedup_key=make_dedup_key("ff_calendar", code, raw_title, it["date"]),
             ))
