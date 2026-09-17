@@ -114,6 +114,64 @@ class GlobalEventsApiTest(unittest.TestCase):
         self.assertEqual(j["today"], [])
         self.assertEqual(j["upcoming"], {})
 
+    def test_window_before_0600_uses_previous_settlement_day(self):
+        early = datetime(2026, 9, 17, 3, 0, 0)
+        rows = {"scheduled": [
+            _row(title="凌晨事件", event_time="2026-09-17 02:00:00", importance=4, heat_score=50),
+        ]}
+
+        def fake_query(sql, params=None):
+            if "FROM event_global" in sql:
+                return rows.get("breaking" if "kind='breaking'" in sql else "scheduled", [])
+            return []
+
+        with mock.patch.object(server, "now_hkt", return_value=early), \
+             mock.patch.object(server.db, "query", side_effect=fake_query), \
+             mock.patch.object(server, "_ge_load_static", return_value=[]), \
+             mock.patch.object(server, "_ge_load_health", return_value={}):
+            r = self.client.get("/api/event_map/global_events")
+        self.assertEqual(r.status_code, 200)
+        j = json.loads(r.data.decode("utf-8"))
+        self.assertEqual(j["window_start"], "2026-09-16 06:00:00")
+        self.assertEqual(j["window_end"], "2026-09-17 06:00:00")
+        self.assertEqual([x["title"] for x in j["today"]], ["凌晨事件"])
+
+    def test_upcoming_grouped_by_settlement_day(self):
+        rows = {"scheduled": [
+            _row(title="09-19凌晨 属09-18交割日", event_time="2026-09-19 02:00:00", importance=4, heat_score=50),
+            _row(title="09-19上午 属09-19交割日", event_time="2026-09-19 07:00:00", importance=4, heat_score=50),
+        ]}
+        j = self._get(rows)
+        self.assertEqual([x["title"] for x in j["upcoming"]["2026-09-18"]], ["09-19凌晨 属09-18交割日"])
+        self.assertEqual([x["title"] for x in j["upcoming"]["2026-09-19"]], ["09-19上午 属09-19交割日"])
+
+    def test_malformed_row_skipped_not_500(self):
+        rows = {"scheduled": [
+            _row(title="好行", event_time="2026-09-17 20:30:00", importance=2, heat_score=30),
+            _row(title="坏行", event_time="garbage", importance=2, heat_score=30),
+        ]}
+        j = self._get(rows)
+        self.assertEqual([x["title"] for x in j["today"]], ["好行"])
+
+    def test_policy_source_failure_isolated_from_earnings(self):
+        earnings = [{"ticker": "NVDA", "event_time": "2026-09-18 04:00:00", "title": "NVDA 财报"}]
+
+        def fake_query(sql, params=None):
+            if "FROM event_global" in sql:
+                return []
+            if "FROM event_earnings" in sql:
+                return list(earnings)
+            return []
+
+        with mock.patch.object(server, "now_hkt", return_value=NOW), \
+             mock.patch.object(server.db, "query", side_effect=fake_query), \
+             mock.patch.object(server, "_ge_load_static", side_effect=ValueError("bad json")), \
+             mock.patch.object(server, "_ge_load_health", return_value={}):
+            r = self.client.get("/api/event_map/global_events")
+        self.assertEqual(r.status_code, 200)
+        j = json.loads(r.data.decode("utf-8"))
+        self.assertEqual(j["today"][0]["title"], "英伟达 (NVDA) 财报")
+
 
 if __name__ == "__main__":
     unittest.main()

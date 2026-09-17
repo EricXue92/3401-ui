@@ -1379,6 +1379,11 @@ def _ge_row(r, now):
                     actual=r.get("actual"), previous=r.get("previous"), reading_num=r.get("reading_num"))
 
 
+def _ge_settle_key(dt):
+    """结算日分组键: HKT 06:00 换日, 与前端日历/交割日口径一致。"""
+    return (dt - timedelta(hours=6)).strftime("%Y-%m-%d")
+
+
 def _ge_mega_earnings(start, end):
     """现有 event_earnings 里的万亿市值巨头财报 → scheduled 事件。"""
     tickers = list(_GE_MEGA.keys())
@@ -1424,7 +1429,8 @@ def api_global_events():
     except (TypeError, ValueError):
         days = 14
     now = now_hkt()
-    start, end = settlement_window(now.strftime("%Y-%m-%d"))
+    day = (now - timedelta(hours=6)).strftime("%Y-%m-%d")
+    start, end = settlement_window(day)
     horizon = end + timedelta(days=days)
 
     sched = db.query(f"SELECT {_GE_COLS} FROM event_global WHERE kind='scheduled' "
@@ -1432,28 +1438,44 @@ def api_global_events():
     brk = db.query(f"SELECT {_GE_COLS} FROM event_global WHERE kind='breaking' "
                    f"AND event_time >= %s ORDER BY event_time DESC", (now - timedelta(hours=24),))
     try:
-        extra = _ge_mega_earnings(start, horizon) + _ge_policy_events(start, horizon)
+        extra_earnings = _ge_mega_earnings(start, horizon)
     except Exception as e:
-        print(f"[WARN] global_events extra: {str(e).splitlines()[0]}")
-        extra = []
+        print(f"[WARN] global_events mega_earnings: {str(e).splitlines()[0]}")
+        extra_earnings = []
+    try:
+        extra_policy = _ge_policy_events(start, horizon)
+    except Exception as e:
+        print(f"[WARN] global_events policy_events: {str(e).splitlines()[0]}")
+        extra_policy = []
+    extra = extra_earnings + extra_policy
 
     today, upcoming = [], {}
     for r in sched:
-        it = _ge_row(r, now)
-        if _ge_dt(r["event_time"]) < end:
+        try:
+            it = _ge_row(r, now)
+            et = _ge_dt(r["event_time"])
+        except Exception as e:
+            print(f"[WARN] global_events row skipped: {str(e).splitlines()[0]}")
+            continue
+        if et < end:
             if it["importance"] >= 2:
                 today.append(it)
         elif it["importance"] >= 3:
-            upcoming.setdefault(it["time"][:10], []).append(it)
+            upcoming.setdefault(_ge_settle_key(et), []).append(it)
     for r in brk:
-        it = _ge_row(r, now)
+        try:
+            it = _ge_row(r, now)
+        except Exception as e:
+            print(f"[WARN] global_events row skipped: {str(e).splitlines()[0]}")
+            continue
         if it["heat"] >= _GE_BREAKING_MIN_HEAT:
             today.append(it)
     for it in extra:
-        if _ge_dt(it["time"]) < end:
+        et = _ge_dt(it["time"])
+        if et < end:
             today.append(it)
         else:
-            upcoming.setdefault(it["time"][:10], []).append(it)
+            upcoming.setdefault(_ge_settle_key(et), []).append(it)
     today.sort(key=lambda x: -x["heat"])
     today = today[:_GE_TODAY_MAX]
     for k in upcoming:
