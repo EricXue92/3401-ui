@@ -37,6 +37,10 @@ class WscnLiveTest(unittest.TestCase):
         self.assertEqual(evs[1]["importance"], 1)
         self.assertEqual(evs[1]["category"], "central_bank")   # 日本央行
 
+    def test_multiline_body_title_collapsed(self):
+        payload = {"data": {"items": [{"id": 1, "title": "", "content_text": "第一行。\n\n第二行。", "display_time": 1789609050, "score": 1}]}}
+        self.assertEqual(S.parse_wscn_live(payload)[0]["title"], "第一行。 第二行。")
+
     def test_fetch_url(self):
         with mock.patch.object(S, "http_json", return_value={"data": {"items": []}}) as m:
             S.fetch_wscn_live(limit=7)

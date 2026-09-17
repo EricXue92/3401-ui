@@ -1368,7 +1368,7 @@ _GE_BREAKING_PERSON = _re.compile(
     r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|Pentagon", _re.I)
 # 政策动作关键词: 国务院/发改委/财政部/央行决议/降准/行政令/刺激方案
 _GE_BREAKING_POLICY = _re.compile(
-    r"国务院|发改委|财政部|政治局|利率决议|降准|行政令|刺激计划|刺激方案|executive order|stimulus|rate decision", _re.I)
+    r"国务院|发改委|政治局|利率决议|降准|行政令|刺激计划|刺激方案|executive order|stimulus|rate decision", _re.I)
 _GE_BREAKING_DEDUP_SIM = 0.6
 # 栏目性/汇总性条目, 不是事件本身
 _GE_BREAKING_EXCLUDE = _re.compile(r"^提醒[：:]|新闻精选|涨停分析|早报|晚报|午评|收评|盘前|复盘|一图|一文|日历|Daily Open|Morning Brief", _re.I)
@@ -1529,6 +1529,8 @@ def api_global_events():
             it = _ge_row(r, now)
         except Exception as e:
             print(f"[WARN] global_events row skipped: {str(e).splitlines()[0]}")
+            continue
+        if _GE_BREAKING_EXCLUDE.search(it.get("title") or ""):   # 栏目/汇总性快讯, 今日与突发都不显示
             continue
         if it["heat"] >= _GE_BREAKING_MIN_HEAT and _ge_is_major(it):
             today.append(it)

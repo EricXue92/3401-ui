@@ -202,7 +202,7 @@ def _title_from(title, body, limit=80):
     t = _s(title, 255)
     if t:
         return t
-    b = (body or "").strip()
+    b = re.sub(r"\s+", " ", (body or "")).strip()   # 见闻正文常带多行, 标题只取一行
     return b[:limit] if b else None
 
 
