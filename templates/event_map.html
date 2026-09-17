@@ -1,0 +1,2612 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>事件日历 · Event Calendar</title>
+    <style>
+      :root {
+        --bg: #f5f7fa;
+        --panel: #ffffff;
+        --ink: #1c2b3a;
+        --muted: #6b7a8a;
+        --line: #e3e9f0;
+        --up: #e23d3d;
+        --down: #0f9d58; /* 红涨绿跌 金融风格 */
+        --blue: #2563eb;
+        --gold: #b8860b;
+        --purple: #7c3aed;
+        --teal: #0e9488;
+        --orange: #ea580c;
+        --now: #e11d48;
+        --shadow: 0 4px 20px rgba(28, 43, 58, 0.1);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto,
+          sans-serif;
+        font-size: 14px;
+      }
+      .wrap {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 16px 20px 40px;
+      }
+      /* ===== Header ===== */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #2563eb, #0e9488);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        box-shadow: var(--shadow);
+      }
+      .brand h1 {
+        font-size: 20px;
+        letter-spacing: 0.5px;
+      }
+      .brand small {
+        display: block;
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 12px;
+      }
+      .clockbox {
+        text-align: right;
+        line-height: 1.3;
+      }
+      .clockbox .big {
+        font-size: 24px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .clockbox .big .now-label {
+        font-size: 12px;
+        color: var(--now);
+        border: 1px solid var(--now);
+        border-radius: 6px;
+        padding: 2px 6px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .clockbox .date-sub {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      /* ===== Active markets strip ===== */
+      .actives {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #cbd5e1;
+      }
+      .chip.live {
+        background: #fff7ed;
+        border-color: #fdba74;
+      }
+      .chip.live .dot {
+        background: var(--orange);
+        box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.18);
+        animation: pulse 1.6s infinite;
+      }
+      .chip.pre {
+        background: #eff6ff;
+        border-color: #93c5fd;
+      }
+      .chip.pre .dot {
+        background: var(--blue);
+      }
+      .chip.after {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+      }
+      .chip.holiday {
+        background: #faf5ff;
+        border-color: #d8b4fe;
+      }
+      .chip.holiday .dot {
+        background: var(--purple);
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 6px rgba(234, 88, 12, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+        }
+      }
+      /* ===== Controls (富途式筛选) ===== */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+      .ctrl-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .cg-label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-right: 2px;
+        white-space: nowrap;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .btn:hover {
+        border-color: #93c5fd;
+      }
+      .btn.active {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .btn.tiny {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .divider {
+        width: 1px;
+        height: 22px;
+        background: var(--line);
+      }
+      input[type="date"] {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 13px;
+        background: #fff;
+        color: var(--ink);
+      }
+      /* ===== 布局: 主列表 + 右栏 ===== */
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 16px;
+      }
+      @media (max-width: 1280px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* ===== 全球重大事件监控 (独立) ===== */
+      .global-panel {
+        background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+        border: 1px solid #c7d2fe;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+      .global-panel .ge-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #c7d2fe;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .global-panel .ge-head .ttl {
+        font-weight: 700;
+        font-size: 15px;
+        color: #3730a3;
+      }
+      .global-panel .ge-head .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .global-panel .ge-head .hint .bad {
+        color: var(--up);
+      }
+      .ge-body {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 0;
+      }
+      @media (max-width: 1100px) {
+        .ge-body {
+          grid-template-columns: 1fr;
+        }
+      }
+      .ge-col {
+        padding: 10px 16px;
+      }
+      .ge-col + .ge-col {
+        border-left: 1px solid #c7d2fe;
+      }
+      .ge-col-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #3730a3;
+        margin-bottom: 6px;
+      }
+      .ge-scroll {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+      }
+      .ge-track {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ge-scroll.scrolling .ge-track {
+        /* steps() (not linear) so the track holds a fixed position between
+           ticks; a purely linear transform never settles, which makes
+           Playwright's click "element is not stable" actionability check
+           time out forever on a running marquee. Step count is high enough
+           that the motion still reads as a smooth auto-scroll to the eye. */
+        animation: ge-up var(--ge-dur, 40s) steps(120, end) infinite;
+      }
+      .ge-scroll.scrolling:hover .ge-track {
+        animation-play-state: paused;
+      }
+      .ge-scroll:not(.scrolling) .ge-track + .ge-track {
+        display: none;
+      }
+      @keyframes ge-up {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-50%);
+        }
+      }
+      .ge-item {
+        display: grid;
+        grid-template-columns: 44px 20px 44px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #e0e7ff;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .ge-item:hover {
+        border-color: #6366f1;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.18);
+      }
+      .ge-item.breaking {
+        border-left: 3px solid var(--orange);
+      }
+      .ge-item.scheduled {
+        border-left: 3px solid var(--teal);
+      }
+      .ge-heat {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        border-radius: 6px;
+        padding: 2px 0;
+        color: #fff;
+        background: linear-gradient(
+          90deg,
+          #6366f1 var(--p, 50%),
+          #c7d2fe var(--p, 50%)
+        );
+      }
+      .ge-cat {
+        font-size: 14px;
+        text-align: center;
+      }
+      .ge-time {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .ge-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      .ge-title .ev {
+        color: var(--muted);
+        font-weight: 400;
+        margin-left: 6px;
+      }
+      .ge-meta {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .ge-meta .star {
+        color: #f59e0b;
+        letter-spacing: 1px;
+      }
+      .ge-src {
+        background: #eef2f7;
+        border-radius: 4px;
+        padding: 1px 4px;
+      }
+      .ge-cal {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .ge-cell {
+        border: 1px solid #e0e7ff;
+        border-radius: 8px;
+        background: #fff;
+        padding: 4px 2px;
+        text-align: center;
+        cursor: pointer;
+        min-height: 44px;
+      }
+      .ge-cell.we {
+        background: #f3f4f6;
+      }
+      .ge-cell.sel {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+      }
+      .ge-cell .d {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .ge-cell .dots {
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+        margin-top: 3px;
+        min-height: 6px;
+      }
+      .ge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #cbd5e1;
+      }
+      .ge-dot.i4 {
+        background: var(--up);
+      }
+      .ge-dot.i3 {
+        background: var(--gold);
+      }
+      .ge-dot.i2 {
+        background: #94a3b8;
+      }
+      .ge-daylist {
+        max-height: 220px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ge-empty {
+        padding: 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      /* ===== 实时监控区 (独立) ===== */
+      .watch-panel {
+        background: linear-gradient(135deg, #fff7ed, #fffbeb);
+        border: 1px solid #fdba74;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+      .watch-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #fed7aa;
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .watch-head .ttl {
+        font-weight: 700;
+        font-size: 15px;
+        color: #9a3412;
+      }
+      .watch-head .ttl .pulse-dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--orange);
+        margin-right: 6px;
+        animation: pulse 1.6s infinite;
+      }
+      .watch-head .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .watch-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 16px;
+        max-height: 340px;
+        overflow-y: auto;
+      }
+      .watch-group {
+        margin-bottom: 2px;
+      }
+      .watch-group-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #9a3412;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .watch-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .watch-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #fed7aa;
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.12s;
+      }
+      .watch-item:hover {
+        border-color: var(--orange);
+        box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+      }
+      .watch-item.up {
+        border-left: 3px solid var(--up);
+      }
+      .watch-item.down {
+        border-left: 3px solid var(--down);
+      }
+      .watch-item .wn {
+        font-weight: 600;
+        max-width: 130px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .watch-item .wp {
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+      }
+      .watch-item .wpos {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .watch-item .wpos.up {
+        color: var(--up);
+      }
+      .watch-item .wpos.down {
+        color: var(--down);
+      }
+      .watch-item .wbadge {
+        font-size: 10px;
+        background: #eef2f7;
+        border-radius: 4px;
+        padding: 1px 4px;
+        color: var(--muted);
+      }
+      .watch-item .wbadge.L1 {
+        background: var(--gold);
+        color: #fff;
+      }
+      .watch-empty {
+        padding: 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      /* ===== 盘前重点区 (固定) ===== */
+      .pre-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+      .pre-head {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pre-head .ico {
+        font-size: 16px;
+      }
+      .pre-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0;
+      }
+      .pre-col {
+        padding: 12px 16px;
+        border-right: 1px solid var(--line);
+      }
+      .pre-col:last-child {
+        border-right: none;
+      }
+      .pre-col-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+      }
+      .ea {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        border-bottom: 1px dashed #f0f4f8;
+      }
+      .ea:last-child {
+        border-bottom: none;
+      }
+      .ea .name {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .ea .sub {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .ea .nm {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .badge-l1 {
+        display: inline-block;
+        background: var(--gold);
+        color: #fff;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: monospace;
+      }
+      .badge-tier {
+        display: inline-block;
+        background: #e5e7eb;
+        color: #374151;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .star {
+        color: #f59e0b;
+        letter-spacing: 1px;
+      }
+      /* ===== 每日延迟回顾 (John 2026-09-02) ===== */
+      .dr-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+      .dr-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #f0f7ff, #effdf9);
+        border-bottom: 1px solid var(--line);
+        user-select: none;
+      }
+      .dr-head:hover {
+        background: linear-gradient(135deg, #e6f1ff, #e0faf3);
+      }
+      .dr-head .ico {
+        font-size: 18px;
+      }
+      .dr-head .ttl {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--blue);
+      }
+      .dr-head .dr-sub {
+        font-weight: 400;
+        font-size: 12px;
+        color: var(--muted);
+        margin-left: 6px;
+      }
+      .dr-head .chev {
+        margin-left: auto;
+        font-size: 16px;
+        color: var(--muted);
+        transition: 0.2s;
+      }
+      .dr-panel.open .chev {
+        transform: rotate(180deg);
+      }
+      .dr-body {
+        padding: 14px 16px;
+      }
+      .dr-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 12px;
+        color: var(--muted);
+        padding-bottom: 10px;
+        border-bottom: 1px dashed var(--line);
+        margin-bottom: 12px;
+      }
+      .dr-meta b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .dr-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 1280px) {
+        .dr-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .dr-col {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .dr-col-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      .dr-col-title .dr-note {
+        font-weight: 400;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .dr-col-body {
+        max-height: 420px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .dr-mkt {
+        margin-bottom: 8px;
+      }
+      .dr-mkt-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 8px;
+        color: #334155;
+      }
+      .dr-mkt-head .cnt {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .dr-stk {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .dr-stk:hover {
+        background: #eef2f7;
+      }
+      .dr-stk .rk {
+        width: 22px;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      .dr-stk .sn {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+      .dr-stk .sr {
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .dr-stk .sr.up {
+        color: var(--up);
+      }
+      .dr-stk .sr.down {
+        color: var(--down);
+      }
+      .dr-stk .sector {
+        font-size: 10px;
+        color: var(--muted);
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .dr-earn {
+        font-size: 10px;
+        background: #fee2e2;
+        color: #b91c1c;
+        border-radius: 4px;
+        padding: 1px 5px;
+        white-space: nowrap;
+      }
+      .dr-event {
+        display: flex;
+        gap: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        border-left: 3px solid transparent;
+        border-radius: 4px;
+        margin-bottom: 2px;
+      }
+      .dr-event.lv3 {
+        border-left-color: var(--up);
+        background: #fef2f2;
+      }
+      .dr-event.lv2 {
+        border-left-color: var(--orange);
+        background: #fff7ed;
+      }
+      .dr-event.lv1 {
+        border-left-color: var(--gold);
+        background: #fffbeb;
+      }
+      .dr-event .et {
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        color: #334155;
+        font-variant-numeric: tabular-nums;
+      }
+      .dr-event .etx {
+        flex: 1;
+        min-width: 0;
+      }
+      .dr-event .etx .tt {
+        font-weight: 600;
+      }
+      .dr-event .etx .cty {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .dr-event .imp {
+        margin-left: auto;
+        font-size: 11px;
+        color: #f59e0b;
+        white-space: nowrap;
+      }
+      .dr-vol {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .dr-vol .vg {
+        font-weight: 700;
+        font-size: 13px;
+        min-width: 86px;
+      }
+      .dr-vol .vd {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .dr-vol .vd.up {
+        color: var(--up);
+      }
+      .dr-vol .vd.down {
+        color: var(--down);
+      }
+      .dr-vol .vmeta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .dr-vol .vpeak {
+        font-size: 11px;
+        color: var(--gold);
+        font-variant-numeric: tabular-nums;
+      }
+      .dr-vol-detail {
+        margin-left: 6px;
+        padding-left: 10px;
+        border-left: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+      }
+      .dr-vol-detail .sym {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .dr-vol-detail .sym b {
+        color: var(--ink);
+      }
+      .dr-vol-detail .sym.up {
+        color: var(--up);
+      }
+      .dr-vol-detail .sym.down {
+        color: var(--down);
+      }
+      .dr-timeline {
+        margin-top: 12px;
+      }
+      .dr-timeline-title {
+        font-weight: 700;
+        font-size: 13px;
+        margin-bottom: 8px;
+        color: #334155;
+      }
+      .dr-timeline-body {
+        max-height: 360px;
+        overflow-y: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .dr-tl-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 7px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 12px;
+      }
+      .dr-tl-row:hover {
+        background: #f8fafc;
+      }
+      .dr-tl-row .tl-time {
+        font-weight: 700;
+        color: #334155;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        min-width: 74px;
+      }
+      .dr-tl-row .tl-tag {
+        font-size: 11px;
+        color: #fff;
+        border-radius: 4px;
+        padding: 1px 6px;
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      .dr-tl-row .tl-title {
+        flex: 1;
+        min-width: 0;
+      }
+      .dr-tl-row .tl-country {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .dr-empty {
+        padding: 18px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      /* ===== 列表式日历 ===== */
+      .cal-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .cal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .cal-head .ttl {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .cal-head .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .cal-list {
+        max-height: 72vh;
+        overflow-y: auto;
+      }
+      /* 时间段分组头 */
+      .slot-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      .slot-head .st {
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .slot-head .sl {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .slot-head .sc {
+        font-size: 11px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+      /* 事件行 (富途式) */
+      .ev-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: 0.1s;
+        cursor: pointer;
+      }
+      .ev-row:hover {
+        background: #f8fafc;
+      }
+      .ev-row .ev-time {
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+        min-width: 52px;
+        font-variant-numeric: tabular-nums;
+      }
+      .ev-row .ev-type {
+        font-size: 11px;
+        color: #fff;
+        border-radius: 4px;
+        padding: 2px 7px;
+        font-weight: 600;
+        white-space: nowrap;
+        min-width: 44px;
+        text-align: center;
+      }
+      .ev-row .ev-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .ev-row .ev-title {
+        font-size: 13px;
+        color: var(--ink);
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ev-row .ev-sub {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .ev-row .ev-val {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        white-space: nowrap;
+        color: var(--muted);
+      }
+      .ev-row .ev-val .v {
+        text-align: right;
+      }
+      .ev-row .ev-val .vk {
+        font-size: 10px;
+        color: #cbd5e1;
+        display: block;
+      }
+      .ev-row .ev-val .vv {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      .ev-row .ev-val .vv.act {
+        color: var(--down);
+      }
+      .ev-row .ev-market {
+        font-size: 11px;
+        color: var(--muted);
+        min-width: 44px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      /* 重点价位行 (开盘时段插入) */
+      .spot-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #fefce8;
+        border-left: 3px solid var(--gold);
+      }
+      .spot-row .spot-tag {
+        font-size: 11px;
+        font-weight: 700;
+        color: #92400e;
+        white-space: nowrap;
+      }
+      .spot-row .spot-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .spot-row .spot-title {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .spot-row .spot-sub {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .spot-row .spot-counts {
+        display: flex;
+        gap: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .spot-row .spot-counts .nh {
+        color: var(--up);
+        font-weight: 700;
+      }
+      .spot-row .spot-counts .nl {
+        color: var(--down);
+        font-weight: 700;
+      }
+      .spot-row .spot-counts .bo {
+        color: var(--gold);
+        font-weight: 700;
+      }
+      /* ===== 右侧栏 ===== */
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .panel-head {
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 600;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .panel-body {
+        padding: 10px 14px;
+        max-height: 300px;
+        overflow: auto;
+      }
+      .panel-body.full {
+        max-height: none;
+      }
+      .kw-item {
+        padding: 6px 2px;
+        border-bottom: 1px solid #eef2f7;
+      }
+      .kw-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .kw-bar {
+        position: relative;
+        height: 7px;
+        background: #eef2f7;
+        border-radius: 4px;
+        margin: 4px 0 3px;
+      }
+      .kw-fill {
+        height: 100%;
+        border-radius: 4px;
+        opacity: 0.85;
+      }
+      .kw-marker {
+        position: absolute;
+        top: -3px;
+        width: 3px;
+        height: 13px;
+        background: #1c2b3a;
+        border-radius: 2px;
+        transform: translateX(-50%);
+      }
+      .kw-sub {
+        font-size: 10px;
+        color: var(--muted);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .side-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px dashed #f0f4f8;
+        font-size: 13px;
+      }
+      .side-item:last-child {
+        border-bottom: none;
+      }
+      .side-item .nm {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .legend .sw {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 1px var(--line);
+      }
+      .loading {
+        color: var(--muted);
+        padding: 10px 16px;
+      }
+      .empty {
+        padding: 16px;
+        text-align: center;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+      /* ===== Modal ===== */
+      .modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .modal-mask.show {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 14px;
+        width: 420px;
+        max-width: 92vw;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        animation: pop 0.15s;
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-head {
+        padding: 14px 16px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .modal-head .mt {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .modal-body {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .kv {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .kv.full {
+        grid-column: 1/-1;
+      }
+      .kv .k {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .kv .v {
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 2px;
+        word-break: break-all;
+      }
+      .close-x {
+        border: none;
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        cursor: pointer;
+        font-size: 15px;
+        line-height: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- Header -->
+      <header>
+        <div class="brand">
+          <div class="logo">🗓️</div>
+          <div>
+            <h1>
+              事件日历
+              <small>Event Calendar · 交易信号 · HKT 06:00 交割日</small>
+            </h1>
+          </div>
+        </div>
+        <div class="clockbox">
+          <div class="big">
+            <span id="bigClock">--:--:--</span
+            ><span class="now-label">● 现在</span>
+          </div>
+          <div class="date-sub" id="bigDate">--</div>
+        </div>
+      </header>
+
+      <!-- Active markets -->
+      <div class="actives" id="activeStrip"></div>
+
+      <!-- Controls (富途式) -->
+      <div class="controls">
+        <div class="ctrl-group">
+          <span class="cg-label">交割日</span>
+          <button class="btn tiny" id="btnPrev">◀ 昨天</button>
+          <input type="date" id="datePicker" />
+          <button class="btn tiny" id="btnToday">今天</button>
+          <button class="btn tiny" id="btnNext">明天 ▶</button>
+        </div>
+        <div class="divider"></div>
+        <div class="ctrl-group">
+          <span class="cg-label">类型</span>
+          <button class="btn tiny type-toggle active" data-t="earnings">
+            财报
+          </button>
+          <button class="btn tiny type-toggle active" data-t="economic">
+            经济
+          </button>
+          <button class="btn tiny type-toggle active" data-t="cb_rate">
+            央行
+          </button>
+          <button class="btn tiny type-toggle active" data-t="new_high">
+            新高
+          </button>
+          <button class="btn tiny type-toggle active" data-t="new_low">
+            新低
+          </button>
+          <button class="btn tiny type-toggle active" data-t="breakout">
+            突破
+          </button>
+        </div>
+        <div class="divider"></div>
+        <div class="ctrl-group">
+          <span class="cg-label">级别</span>
+          <button class="btn tiny tier-toggle active" data-t="L1">L1</button>
+          <button class="btn tiny tier-toggle active" data-t="L2">L2</button>
+          <button class="btn tiny tier-toggle active" data-t="L3">L3</button>
+          <button class="btn tiny tier-toggle active" data-t="L4">L4</button>
+          <button class="btn tiny tier-toggle active" data-t="L5">L5</button>
+          <button class="btn tiny tier-toggle active" data-t="*">未分级</button>
+          <span style="color: var(--muted); font-size: 11px"
+            >(级别来自 3400)</span
+          >
+        </div>
+      </div>
+
+      <!-- 全球重大事件监控 (2026-09-17) -->
+      <div class="global-panel" id="globalPanel">
+        <div class="ge-head">
+          <div class="ttl">🌐 全球重大事件监控</div>
+          <div class="hint" id="geHint">加载中…</div>
+        </div>
+        <div class="ge-body">
+          <div class="ge-col">
+            <div class="ge-col-title">
+              今日 · 按热度排序
+              <span style="font-weight: 400; color: var(--muted)"
+                >(HKT 06:00 → 次日 06:00 · 悬停暂停滚动)</span
+              >
+            </div>
+            <div class="ge-scroll" id="geToday">
+              <div class="ge-empty">加载中…</div>
+            </div>
+          </div>
+          <div class="ge-col">
+            <div class="ge-col-title">
+              未来 14 天
+              <span style="font-weight: 400; color: var(--muted)"
+                >(红=重大 金=重要 灰=一般)</span
+              >
+            </div>
+            <div class="ge-cal" id="geCal"></div>
+            <div class="ge-daylist" id="geDayList">
+              <div class="ge-empty">加载中…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 实时监控区 (独立区域) -->
+      <div class="watch-panel">
+        <div class="watch-head">
+          <div class="ttl">
+            <span class="pulse-dot"></span>🔴 实时监控 · 逼近突破位
+          </div>
+          <div class="hint" id="watchHint">加载中…</div>
+        </div>
+        <div class="watch-body" id="watchBody">
+          <div class="loading">加载中…</div>
+        </div>
+      </div>
+
+      <!-- 盘前重点区 (固定区域) -->
+      <div class="pre-panel">
+        <div class="pre-head"><span class="ico">🌅</span> 盘前重点</div>
+        <div class="pre-body">
+          <div class="pre-col">
+            <div class="pre-col-title">🌅 今日盘前财报</div>
+            <div id="todayPrePanel"><div class="loading">加载中…</div></div>
+          </div>
+          <div class="pre-col">
+            <div class="pre-col-title">🕗 今日盘后财报</div>
+            <div id="afterHoursPanel"><div class="loading">加载中…</div></div>
+          </div>
+          <div class="pre-col">
+            <div class="pre-col-title">🌅 明日盘前财报</div>
+            <div id="nextPrePanel"><div class="loading">加载中…</div></div>
+          </div>
+          <div class="pre-col">
+            <div class="pre-col-title">📊 未来 24h 重点经济数据</div>
+            <div id="keyEcoPanel"><div class="loading">加载中…</div></div>
+          </div>
+          <div class="pre-col">
+            <div class="pre-col-title">📈 异常放量 (板块联动)</div>
+            <div id="surgeSectorPanel"><div class="loading">加载中…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 每日延迟回顾 (John 2026-09-02, 默认折叠) -->
+      <div class="dr-panel" id="dailyReviewPanel">
+        <div class="dr-head" id="drHead" onclick="toggleDailyReview()">
+          <span class="ico">📅</span>
+          <span class="ttl"
+            >每日延迟回顾 <span class="dr-sub" id="drSub"></span
+          ></span>
+          <span class="chev" id="drChev">▾</span>
+        </div>
+        <div class="dr-body" id="drBody" style="display: none">
+          <div class="dr-meta" id="drMeta"></div>
+          <div class="dr-grid">
+            <div class="dr-col">
+              <div class="dr-col-title">
+                📈 热点股票 <span class="dr-note">90日均成交额</span>
+              </div>
+              <div class="dr-col-body" id="drHotStocks">
+                <div class="loading">加载中…</div>
+              </div>
+            </div>
+            <div class="dr-col">
+              <div class="dr-col-title">📰 财经事件</div>
+              <div class="dr-col-body" id="drNews">
+                <div class="loading">加载中…</div>
+              </div>
+            </div>
+            <div class="dr-col">
+              <div class="dr-col-title">🛢️ 放量商品大类</div>
+              <div class="dr-col-body" id="drVolume">
+                <div class="loading">加载中…</div>
+              </div>
+            </div>
+          </div>
+          <div class="dr-timeline">
+            <div class="dr-timeline-title">🗓️ 关键时间线</div>
+            <div class="dr-timeline-body" id="drTimeline">
+              <div class="loading">加载中…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout">
+        <!-- 列表式日历 -->
+        <div class="cal-panel">
+          <div class="cal-head">
+            <div class="ttl">
+              📋 当日交易日历
+              <span
+                style="color: var(--muted); font-weight: 400; font-size: 12px"
+                >HKT 06:00 → 次日 06:00</span
+              >
+            </div>
+            <div class="hint" id="calHint"></div>
+          </div>
+          <div class="cal-list" id="calList">
+            <div class="loading">加载中…</div>
+          </div>
+        </div>
+
+        <!-- 右栏 -->
+        <div class="side">
+          <div class="panel">
+            <div class="panel-head">
+              📈 指数关键价位
+              <span
+                id="assetSummary"
+                style="font-weight: 400; font-size: 12px; color: var(--muted)"
+              ></span>
+            </div>
+            <div class="panel-body full" id="assetsPanel">
+              <div class="loading">加载中…</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">🌍 市场状态</div>
+            <div class="panel-body" id="marketPanel">
+              <div class="loading">加载中…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><span class="sw" style="background: #2563eb"></span>财报</span>
+        <span
+          ><span class="sw" style="background: #0e9488"></span>经济/央行</span
+        >
+        <span
+          ><span class="sw" style="background: #e23d3d"></span>创历史新高</span
+        >
+        <span
+          ><span class="sw" style="background: #0f9d58"></span>创历史新低</span
+        >
+        <span><span class="sw" style="background: #b8860b"></span>突破</span>
+        <span>🖱 点击事件查看详情</span>
+      </div>
+
+      <footer>
+        Event Calendar v2 · 后端 API :3401 · 实时监控数据源: 3403 数据地图 +
+        4002 · 全球事件: 华尔街见闻 + ForexFactory + 财联社 + Google News ·
+        数据仅供研究参考
+      </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-mask" id="modalMask">
+      <div class="modal">
+        <div class="modal-head" id="modalHead">
+          <div class="mt" id="modalTitle">事件</div>
+          <button class="close-x" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+      const API = location.origin + "/api/event_map";
+      const HKT_START = 6; // 交割日从 06:00 开始
+
+      /* ===== State ===== */
+      const state = {
+        date: todayStr(),
+        events: [],
+        markets: {},
+        pre: {
+          today_pre_earnings: [],
+          after_hours_earnings: [],
+          next_pre_earnings: [],
+          key_economic: [],
+        },
+        openSlots: [],
+        watch: null,
+        now: new Date(),
+        filters: {
+          types: new Set([
+            "earnings",
+            "economic",
+            "cb_rate",
+            "new_high",
+            "new_low",
+            "breakout",
+          ]),
+          tiers: new Set(["L1", "L2", "L3", "L4", "L5", "*"]),
+        },
+      };
+
+      function todayStr() {
+        const d = new Date();
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
+      }
+      function pad2(n) {
+        return String(n).padStart(2, "0");
+      }
+
+      /* ===== Clock ===== */
+      function tickClock() {
+        const n = new Date();
+        state.now = n;
+        document.getElementById("bigClock").textContent = n.toLocaleTimeString(
+          "zh-HK",
+          { hour12: false },
+        );
+        const wd = ["日", "一", "二", "三", "四", "五", "六"][n.getDay()];
+        document.getElementById("bigDate").textContent =
+          n.getFullYear() +
+          "-" +
+          pad2(n.getMonth() + 1) +
+          "-" +
+          pad2(n.getDate()) +
+          " 星期" +
+          wd +
+          " (HKT)";
+      }
+      setInterval(tickClock, 1000);
+      tickClock();
+
+      /* ===== Helpers ===== */
+      function fmt(v) {
+        if (v == null || v === "") return "—";
+        return String(v);
+      }
+      function hhmm(t) {
+        const s = String(t || "");
+        if (!s) return "—";
+        const m = s.match(/(\d{2}):(\d{2})/);
+        return m ? m[1] + ":" + m[2] : "—";
+      }
+      function escapeHtml(s) {
+        return String(s == null ? "" : s).replace(
+          /[&<>\"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      }
+      function stars(imp) {
+        imp = Number(imp);
+        if (!imp || imp < 1) return "";
+        return "★".repeat(Math.min(3, Math.round(imp)));
+      }
+      const TYPE_COLOR = {
+        earnings: "#2563eb",
+        economic: "#0e9488",
+        cb_rate: "#7c3aed",
+        new_high: "#e23d3d",
+        new_low: "#0f9d58",
+        breakout: "#b8860b",
+        market_cap: "#ea580c",
+        ipo_break: "#0f9d58",
+        sentiment: "#ea580c",
+      };
+      const TYPE_NAME = {
+        earnings: "财报",
+        economic: "经济",
+        cb_rate: "央行",
+        new_high: "新高",
+        new_low: "新低",
+        breakout: "突破",
+        market_cap: "市值",
+        ipo_break: "破发",
+        sentiment: "舆情",
+      };
+      function tierBadge(t) {
+        if (!t) return '<span class="badge-tier">—</span>';
+        return t === "L1"
+          ? '<span class="badge-l1">L1</span>'
+          : `<span class="badge-tier">${t}</span>`;
+      }
+
+      /* ===== Data loading ===== */
+      async function loadAll() {
+        await Promise.all([
+          loadCalendar(),
+          loadMarkets(),
+          loadAssets(),
+          loadWatch(),
+          loadGlobalEvents(),
+        ]);
+      }
+      async function loadCalendar() {
+        try {
+          const r = await fetch(API + "/calendar?date=" + state.date);
+          const j = await r.json();
+          state.events = j.events || [];
+          state.pre = j.pre_market || {
+            after_hours_earnings: [],
+            next_pre_earnings: [],
+            key_economic: [],
+            surge_sectors: [],
+          };
+          state.openSlots = j.open_slots || [];
+          renderPre();
+          renderCalendar();
+          document.getElementById("calHint").textContent =
+            `共 ${state.events.length} 个事件 · ${j.window_start} → ${j.window_end}`;
+        } catch (e) {
+          console.error(e);
+          document.getElementById("calList").innerHTML =
+            '<div class="empty">加载失败</div>';
+        }
+      }
+      async function loadMarkets() {
+        try {
+          const r = await fetch(API + "/market_status");
+          const j = await r.json();
+          state.markets = j.markets || {};
+          renderMarkets();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      async function loadAssets() {
+        try {
+          const r = await fetch(API + "/assets");
+          const j = await r.json();
+          const s = j.summary || {};
+          document.getElementById("assetSummary").textContent =
+            s.indexes +
+            "指数 / " +
+            s.forex +
+            "汇率 / " +
+            s.commodities +
+            "商品";
+          const p = document.getElementById("assetsPanel");
+          let h = "";
+          const idx = (j.indexes || []).filter((x) => x.pos != null);
+          if (idx.length) {
+            h +=
+              "<div style='font-weight:600;margin:4px 0;font-size:12px;color:var(--muted)'>52周位置 (红=近高 绿=近低)</div>";
+            idx.forEach((x) => {
+              const pos = Math.max(0, Math.min(100, x.pos));
+              const color =
+                pos >= 90
+                  ? "var(--up)"
+                  : pos <= 10
+                    ? "var(--down)"
+                    : "var(--gold)";
+              h += `<div class="kw-item" title="${x.name} 现价 ${x.latest_value} 52周高 ${x.high52} 低 ${x.low52}">
+          <div class="kw-top"><span>${x.name}</span><span class="nm" style="color:${color}">${pos.toFixed(0)}%</span></div>
+          <div class="kw-bar"><div class="kw-fill" style="width:${pos}%;background:${color}"></div><span class="kw-marker" style="left:${pos}%"></span></div>
+          <div class="kw-sub">${x.latest_value} · 距高 ${x.pct_from_high}% · 距低 +${x.pct_from_low}%</div>
+        </div>`;
+            });
+          }
+          const noPos = (j.indexes || []).filter((x) => x.pos == null);
+          if (noPos.length) {
+            h +=
+              "<div style='font-weight:600;margin:8px 0 4px;font-size:12px;color:var(--muted)'>其他指数</div>";
+            noPos.forEach((x) => {
+              h += `<div class="side-item"><span>${x.name}</span><span class="nm">${x.latest_value != null ? x.latest_value : "—"}</span></div>`;
+            });
+          }
+          p.innerHTML = h || '<div class="empty">暂无数据</div>';
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      async function loadWatch() {
+        try {
+          const r = await fetch(API + "/watch", {
+            signal: AbortSignal.timeout(30000),
+          });
+          const j = await r.json();
+          state.watch = j;
+          renderWatch();
+        } catch (e) {
+          console.error(e);
+          document.getElementById("watchBody").innerHTML =
+            '<div class="watch-empty">实时监控加载失败 (数据源 3403/4002 暂不可用)</div>';
+        }
+      }
+
+      /* ===== 全球重大事件监控 ===== */
+      const GE_CAT = {
+        central_bank: "🏦",
+        inflation: "📈",
+        jobs: "👷",
+        growth: "📊",
+        cn_policy: "🇨🇳",
+        earnings: "💼",
+        geopolitics: "⚔️",
+        energy_supply: "🛢️",
+        fin_risk: "⚠️",
+        tech_event: "🚀",
+        other: "📌",
+      };
+      const GE_SRC = {
+        wscn_calendar: "见闻日历",
+        ff_calendar: "FF",
+        wscn_live: "见闻",
+        cls_roll: "财联社",
+        cls_hot: "财联社热",
+        gnews: "GNews",
+        earnings: "财报",
+        cn_policy: "政策",
+      };
+      state.ge = null;
+      state.geSel = null;
+      function stars4(imp) {
+        imp = Number(imp) || 0;
+        return "★".repeat(Math.max(0, Math.min(4, Math.round(imp))));
+      }
+      function geItemHtml(e) {
+        const p = Math.max(0, Math.min(100, Number(e.heat) || 0));
+        const ev =
+          e.expected != null || e.actual != null
+            ? `<span class="ev">预期 ${fmt(e.expected)} / 实际 ${fmt(e.actual)}</span>`
+            : "";
+        return `<div class="ge-item ${e.kind}" data-json="${encodeURIComponent(JSON.stringify(e))}">
+    <span class="ge-heat" style="--p:${p}%">${Math.round(p)}</span>
+    <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
+    <span class="ge-time">${hhmm(e.time)}</span>
+    <span class="ge-title" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}${ev}</span>
+    <span class="ge-meta"><span class="star">${stars4(e.importance)}</span><span class="ge-src">${GE_SRC[e.source] || escapeHtml(e.source || "")}</span></span>
+  </div>`;
+      }
+      function geBind(container) {
+        container.querySelectorAll(".ge-item").forEach((el) => {
+          el.onclick = () => {
+            try {
+              const e = JSON.parse(decodeURIComponent(el.dataset.json));
+              openModal({
+                ...e,
+                type: e.kind === "scheduled" ? "economic" : "sentiment",
+                name: e.title,
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          };
+        });
+      }
+      async function loadGlobalEvents() {
+        try {
+          const r = await fetch(API + "/global_events?days=14", {
+            signal: AbortSignal.timeout(15000),
+          });
+          state.ge = await r.json();
+          renderGlobalEvents();
+        } catch (e) {
+          console.error(e);
+          document.getElementById("geToday").innerHTML =
+            '<div class="ge-empty">全球事件加载失败</div>';
+          document.getElementById("geHint").textContent = "加载失败";
+        }
+      }
+      function renderGlobalEvents() {
+        const j = state.ge;
+        if (!j) return;
+        const bad = Object.entries(j.sources || {})
+          .filter(([k, v]) => v && v.ok === false)
+          .map(([k]) => k);
+        const okN = Object.values(j.sources || {}).filter(
+          (v) => v && v.ok,
+        ).length;
+        document.getElementById("geHint").innerHTML =
+          `数据源 ${okN} 正常${bad.length ? ` · <span class="bad">部分数据源不可用: ${escapeHtml(bad.join(", "))}</span>` : ""} · ${escapeHtml(j.time_hkt || "")} (60s 刷新)`;
+        // 今日
+        const t = document.getElementById("geToday");
+        const today = j.today || [];
+        if (!today.length) {
+          t.classList.remove("scrolling");
+          t.innerHTML = '<div class="ge-empty">今日暂无重大事件</div>';
+        } else {
+          const h = today.map(geItemHtml).join("");
+          t.innerHTML = `<div class="ge-track">${h}</div><div class="ge-track" aria-hidden="true">${h}</div>`;
+          t.style.setProperty("--ge-dur", today.length * 3 + "s");
+          t.classList.toggle("scrolling", today.length > 6);
+          geBind(t);
+        }
+        // 日历 14 格 (从 window_end 当天起)
+        const up = j.upcoming || {};
+        const cal = document.getElementById("geCal");
+        const base = new Date((j.window_end || "").slice(0, 10) + "T12:00:00");
+        let ch = "";
+        const dates = [];
+        for (let i = 0; i < 14; i++) {
+          const d = new Date(base);
+          d.setDate(base.getDate() + i);
+          const ds =
+            d.getFullYear() +
+            "-" +
+            pad2(d.getMonth() + 1) +
+            "-" +
+            pad2(d.getDate());
+          dates.push(ds);
+          const evs = up[ds] || [];
+          const we = d.getDay() === 0 || d.getDay() === 6;
+          const dots = evs
+            .slice()
+            .sort((a, b) => b.importance - a.importance)
+            .slice(0, 3)
+            .map(
+              (e) =>
+                `<span class="ge-dot i${Math.min(4, Math.max(2, e.importance))}"></span>`,
+            )
+            .join("");
+          ch += `<div class="ge-cell ${we ? "we" : ""} ${state.geSel === ds ? "sel" : ""}" data-date="${ds}" title="${ds} · ${evs.length} 事件"><div class="d">${d.getMonth() + 1}/${d.getDate()}</div><div class="dots">${dots}</div></div>`;
+        }
+        cal.innerHTML = ch;
+        if (!state.geSel || !dates.includes(state.geSel))
+          state.geSel = dates[0];
+        cal.querySelectorAll(".ge-cell").forEach((c) => {
+          c.onclick = () => {
+            state.geSel = c.dataset.date;
+            renderGlobalEvents();
+          };
+        });
+        cal
+          .querySelector(`.ge-cell[data-date="${state.geSel}"]`)
+          ?.classList.add("sel");
+        const dl = document.getElementById("geDayList");
+        const evs = up[state.geSel] || [];
+        dl.innerHTML = evs.length
+          ? evs.map(geItemHtml).join("")
+          : `<div class="ge-empty">${state.geSel} 暂无重要事件</div>`;
+        geBind(dl);
+      }
+      setInterval(() => {
+        if (document.visibilityState === "visible") loadGlobalEvents();
+      }, 60000);
+
+      /* ===== Render: 实时监控 ===== */
+      function renderWatch() {
+        const p = document.getElementById("watchBody");
+        const w = state.watch;
+        if (!w) return;
+        const s = w.summary || {};
+        document.getElementById("watchHint").textContent =
+          `股票 ${s.stocks || 0} · 指数 ${s.indices || 0} · 商品 ${s.commodities || 0} · 汇率 ${s.forex || 0} · 债券 ${s.bonds || 0} · 加密 ${s.crypto || 0} · ${w.time_hkt || ""} (60s 自动刷新)`;
+        const total =
+          (s.stocks || 0) +
+          (s.indices || 0) +
+          (s.commodities || 0) +
+          (s.forex || 0) +
+          (s.bonds || 0) +
+          (s.crypto || 0);
+        let h = "";
+        if (total) {
+          const groups = [
+            ["📈 指数", w.indices || [], (x) => x.symbol, (x) => x.price],
+            ["🪙 商品", w.commodities || [], (x) => x.symbol, (x) => x.price],
+            ["💱 汇率", w.forex || [], (x) => x.symbol, (x) => x.price],
+            ["🏦 债券", w.bonds || [], (x) => x.symbol, (x) => x.price],
+            ["₿ 加密", w.crypto || [], (x) => x.symbol, (x) => x.price],
+            ["🏢 股票", w.stocks || [], (x) => x.ticker, (x) => x.price],
+          ];
+          groups.forEach(([gtitle, arr]) => {
+            if (!arr.length) return;
+            h += `<div class="watch-group"><div class="watch-group-title">${gtitle} (${arr.length})</div><div class="watch-items">`;
+            arr.forEach((a) => {
+              const dir = a.direction === "up" ? "up" : "down";
+              const nm = a.name || a.ticker || a.symbol;
+              const tier = a.tier ? a.tier : "";
+              // John: 红色数字=距下跌突破距离, 绿色百分比=距上涨距离 — 都用实时数据
+              const distTxt =
+                a.dist != null
+                  ? dir === "up"
+                    ? `距高 ${a.dist}`
+                    : `距低 ${a.dist}`
+                  : "";
+              h += `<div class="watch-item ${dir}" data-json="${encodeURIComponent(JSON.stringify(a))}">
+          <span class="wn" title="${nm}">${escapeHtml(nm)}</span>
+          <span class="wp">${fmt(a.price)}</span>
+          <span class="wpos ${dir}">${dir === "up" ? "▲" : "▼"} ${a.pos != null ? a.pos + "%" : ""} ${distTxt}</span>
+          ${tier ? `<span class="wbadge ${tier === "L1" ? "L1" : ""}">${tier}</span>` : ""}
+        </div>`;
+            });
+            h += "</div></div>";
+          });
+        }
+        // 无行情标注
+        const nq = w.no_quote || [];
+        if (nq.length) {
+          h += `<div class="watch-group"><div class="watch-group-title">⚠️ 暂时无行情 / 数据缺口 (${nq.length})</div><div class="watch-items">`;
+          nq.slice(0, 30).forEach((a) => {
+            h += `<div class="watch-item down" style="border-left-color:#94a3b8"><span class="wn">${escapeHtml(a.name)}</span><span class="wp">${a.note || "无行情"}</span></div>`;
+          });
+          h += "</div></div>";
+        }
+        if (!total && !nq.length) {
+          h =
+            '<div class="watch-empty">当前无标的进入突破位附近 (52周区间顶部/底部 8% 以内)</div>';
+        }
+        p.innerHTML = h;
+        p.querySelectorAll(".watch-item").forEach((el) => {
+          el.onclick = () => {
+            try {
+              openModal(JSON.parse(decodeURIComponent(el.dataset.json)));
+            } catch (e) {}
+          };
+        });
+      }
+      setInterval(() => {
+        if (document.visibilityState === "visible") loadWatch();
+      }, 60000);
+
+      /* ===== Render: 盘前重点 ===== */
+      function renderPre() {
+        renderEaList(
+          "todayPrePanel",
+          state.pre.today_pre_earnings || [],
+          "今日暂无盘前财报",
+        );
+        renderEaList(
+          "afterHoursPanel",
+          state.pre.after_hours_earnings || [],
+          "今日暂无盘后财报",
+        );
+        renderEaList(
+          "nextPrePanel",
+          state.pre.next_pre_earnings || [],
+          "明日暂无盘前财报",
+        );
+        renderSurgeSectors();
+        const ek = document.getElementById("keyEcoPanel");
+        const eco = state.pre.key_economic || [];
+        if (!eco.length) {
+          ek.innerHTML = '<div class="empty">未来 24h 暂无经济数据</div>';
+          return;
+        }
+        let h = "";
+        eco.slice(0, 12).forEach((e) => {
+          const cls = e.type === "cb_rate" ? "央行" : "经济";
+          h += `<div class="ea" data-json="${encodeURIComponent(JSON.stringify(e))}">
+      <div><div class="name">${escapeHtml(e.title)} <span class="star">${stars(e.importance)}</span></div>
+      <div class="sub">${hhmm(e.time)} · ${e.country || ""} ${cls}</div></div>
+      <div class="nm">${e.expected != null ? "预期 " + e.expected : "—"}</div>
+    </div>`;
+        });
+        ek.innerHTML = h;
+        ek.querySelectorAll(".ea").forEach((el) => {
+          el.onclick = () => {
+            try {
+              openModal(JSON.parse(decodeURIComponent(el.dataset.json)));
+            } catch (e) {}
+          };
+        });
+      }
+      function renderEaList(panelId, arr, emptyTxt) {
+        const p = document.getElementById(panelId);
+        if (!arr || !arr.length) {
+          p.innerHTML = `<div class="empty">${emptyTxt}</div>`;
+          return;
+        }
+        let h = "";
+        arr.slice(0, 14).forEach((e) => {
+          const t = hhmm(e.time);
+          h += `<div class="ea" data-json="${encodeURIComponent(JSON.stringify(e))}">
+      <div><div class="name">${escapeHtml(e.ticker || e.title || "")} ${tierBadge(e.liquidity_tier)}</div>
+      <div class="sub">${t} · ${e.country || ""}</div></div>
+      <div class="nm">${e.expected != null ? "预期 " + e.expected : "—"}</div>
+    </div>`;
+        });
+        p.innerHTML = h;
+        p.querySelectorAll(".ea").forEach((el) => {
+          el.onclick = () => {
+            try {
+              openModal(JSON.parse(decodeURIComponent(el.dataset.json)));
+            } catch (e) {}
+          };
+        });
+      }
+
+      /* ===== Render: 异常放量 (板块联动) ===== */
+      function renderSurgeSectors() {
+        const p = document.getElementById("surgeSectorPanel");
+        const items = state.pre.surge_sectors || [];
+        if (!items.length) {
+          p.innerHTML = '<div class="empty">暂无异常放量联动</div>';
+          return;
+        }
+        let h = "";
+        items.forEach((s) => {
+          const dir = s.sustained_direction === "上涨" ? "📈" : "📉";
+          const mktLabel =
+            { cn: "A股", hk: "港股", us: "美股", eu: "欧股" }[s.market] ||
+            s.market;
+          h += `<div class="ea">
+      <div><div class="name">${escapeHtml(s.symbol)} <span class="badge-tier">${escapeHtml(s.group)}</span></div>
+      <div class="sub">${mktLabel}·${escapeHtml(s.sector)} ${s.sector_direction}
+        ${dir} 持续 ${s.hours_sustained}h</div></div>
+      <div class="nm">${s.surge_windows}</div>
+    </div>`;
+        });
+        p.innerHTML = h;
+      }
+
+      /* ===== Render: 列表式日历 ===== */
+      function slotOf(e) {
+        // 时间段分组: 06-09 亚洲盘前 / 09-12 中国上午 / 12-15 中国下午 / 15-18 欧洲盘前 / 18-21 欧洲/美股盘前 / 21-24 美股 / 00-06 美股盘后
+        const t = String(e.time || "");
+        const m = t.match(/(\d{2}):(\d{2})/);
+        if (!m) return { key: "misc", label: "其他", icon: "📌" };
+        let h = parseInt(m[1]);
+        if (h < 6) h += 24;
+        if (h >= 6 && h < 9)
+          return { key: "s1", label: "🌏 亚洲盘前", icon: "🌏" };
+        if (h >= 9 && h < 12)
+          return { key: "s2", label: "🇨🇳 亚洲盘中", icon: "🇨🇳" };
+        if (h >= 12 && h < 15)
+          return { key: "s3", label: "🇨🇳 中国下午", icon: "🇨🇳" };
+        if (h >= 15 && h < 18)
+          return { key: "s4", label: "🇪🇺 欧洲开盘", icon: "🇪🇺" };
+        if (h >= 18 && h < 21)
+          return { key: "s5", label: "🌆 欧洲/美股盘前", icon: "🌆" };
+        if (h >= 21 || h < 3)
+          return { key: "s6", label: "🇺🇸 美股时段", icon: "🇺🇸" };
+        return { key: "s7", label: "🌙 美股盘后", icon: "🌙" };
+      }
+      function renderCalendar() {
+        const list = document.getElementById("calList");
+        const evs = [...state.events].sort((a, b) =>
+          (a.time || "").localeCompare(b.time || ""),
+        );
+        const filtered = evs.filter((e) => {
+          if (!state.filters.types.has(e.type)) return false;
+          const t = e.liquidity_tier;
+          if (t && !state.filters.tiers.has(t)) return false;
+          if (!t && !state.filters.tiers.has("*")) return false;
+          return true;
+        });
+        if (!filtered.length) {
+          list.innerHTML = '<div class="empty">该日期无匹配事件</div>';
+          return;
+        }
+
+        // 按时间段分组渲染
+        const groups = {};
+        filtered.forEach((e) => {
+          const s = slotOf(e);
+          const k = s.key;
+          if (!groups[k]) groups[k] = { label: s.label, items: [] };
+          groups[k].items.push(e);
+        });
+
+        let h = "";
+        // 开盘时段重点价位 (L1) 插入对应时间段
+        const spotByKey = {};
+        (state.openSlots || []).forEach((sl) => {
+          const t = sl.open_time;
+          const m = t.match(/(\d{2}):(\d{2})/);
+          if (!m) return;
+          let hh = parseInt(m[1]);
+          const k = slotOf({ time: "2026-01-01 " + t + ":00" }).key;
+          spotByKey[k] = (spotByKey[k] || []).concat([sl]);
+        });
+        const slotOrder = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "misc"];
+        slotOrder.forEach((k) => {
+          const g = groups[k];
+          if (!g) return;
+          const spotArr = spotByKey[k] || [];
+          h += `<div class="slot-head"><span class="st">${g.label}</span><span class="sl">${g.items.length} 条</span>${spotArr.length ? `<span class="sc">${spotArr.length} 个市场开盘重点价位</span>` : ""}</div>`;
+          // 开盘重点价位行
+          spotArr.forEach((sl) => {
+            const c = sl.counts || {};
+            const topNames = (sl.top || [])
+              .slice(0, 4)
+              .map((t) => t.ticker)
+              .join(" · ");
+            h += `<div class="spot-row">
+        <span class="spot-tag">${sl.flag || ""} 开盘 ${sl.open_time}</span>
+        <div class="spot-main">
+          <div class="spot-title">${sl.market_name} · L1 重点价位</div>
+          <div class="spot-sub">${topNames || "—"}</div>
+        </div>
+        <div class="spot-counts">
+          <span class="nh">▲新高 ${c.new_high || 0}</span>
+          <span class="nl">▼新低 ${c.new_low || 0}</span>
+          <span class="bo">◆突破 ${c.breakout || 0}</span>
+        </div>
+      </div>`;
+          });
+          g.items.forEach((e) => {
+            const col = TYPE_COLOR[e.type] || "#2563eb";
+            const tier = tierBadge(e.liquidity_tier);
+            const val =
+              e.actual != null
+                ? `<div class="v"><span class="vk">实际</span><span class="vv act">${e.actual}</span></div>`
+                : e.expected != null
+                  ? `<div class="v"><span class="vk">预期</span><span class="vv">${e.expected}</span></div>`
+                  : e.price != null
+                    ? `<div class="v"><span class="vk">价格</span><span class="vv">${e.price}</span></div>`
+                    : e.consecutive_days != null
+                      ? `<div class="v"><span class="vk">连${e.consecutive_days}天</span></div>`
+                      : "";
+            const market = e.market || e.country || "";
+            h += `<div class="ev-row" data-json="${encodeURIComponent(JSON.stringify(e))}">
+        <span class="ev-time">${hhmm(e.time)}</span>
+        <span class="ev-type" style="background:${col}">${TYPE_NAME[e.type] || e.type}</span>
+        <div class="ev-main">
+          <div class="ev-title">${escapeHtml(e.title || e.ticker || "")} ${tier}</div>
+          <div class="ev-sub">${e.ticker ? escapeHtml(e.ticker) + " · " : ""}${e.volume_ratio != null ? "放量 " + e.volume_ratio + "x · " : ""}${e.asset_class || ""}</div>
+        </div>
+        ${val ? `<div class="ev-val">${val}</div>` : ""}
+        <span class="ev-market">${market} <span class="star">${stars(e.importance)}</span></span>
+      </div>`;
+          });
+        });
+        list.innerHTML = h;
+        list.querySelectorAll(".ev-row").forEach((el) => {
+          el.onclick = () => {
+            try {
+              openModal(JSON.parse(decodeURIComponent(el.dataset.json)));
+            } catch (e) {}
+          };
+        });
+      }
+
+      /* ===== Render: 市场状态 ===== */
+      const STATUS_LABEL = {
+        session: "交易中",
+        pre_market: "盘前",
+        after_market: "已收盘",
+        holiday: "休市",
+      };
+      const STATUS_CLASS = {
+        session: "live",
+        pre_market: "pre",
+        after_market: "after",
+        holiday: "holiday",
+      };
+      function renderMarkets() {
+        const strip = document.getElementById("activeStrip");
+        let h = "";
+        const ms = state.markets;
+        const codes = Object.keys(ms);
+        const order = {
+          session: 0,
+          pre_market: 1,
+          after_market: 2,
+          holiday: 3,
+        };
+        codes.sort(
+          (a, b) => (order[ms[a].status] ?? 9) - (order[ms[b].status] ?? 9),
+        );
+        codes.forEach((c) => {
+          const m = ms[c];
+          const st = m.status;
+          const s = m.sessions && m.sessions.length ? m.sessions[0] : {};
+          h +=
+            `<span class="chip ${STATUS_CLASS[st] || ""}" title="${m.name} 开盘${s.open || "—"} 收盘${s.close || "—"}">` +
+            `<span class="dot"></span>${m.flag || ""} ${m.name} · ${STATUS_LABEL[st] || st}` +
+            `<span style="opacity:.7">${s.open || ""}-${s.close || ""}</span></span>`;
+        });
+        strip.innerHTML = h || '<span class="chip">加载中…</span>';
+        const mp = document.getElementById("marketPanel");
+        let mh = "";
+        codes.forEach((c) => {
+          const m = ms[c];
+          const sess = (m.sessions || [])
+            .map((s) => `${s.open}-${s.close}`)
+            .join(", ");
+          mh += `<div class="side-item"><span>${m.flag || ""} ${m.name}</span><span class="nm">${STATUS_LABEL[m.status] || m.status}${sess ? " · " + sess : ""}</span></div>`;
+        });
+        mp.innerHTML = mh || '<div class="empty">暂无数据</div>';
+      }
+
+      /* ===== Modal ===== */
+      function openModal(e) {
+        const head = document.getElementById("modalHead");
+        const col =
+          TYPE_COLOR[e.type] || (e._type && TYPE_COLOR[e._type]) || "#2563eb";
+        head.style.background = col;
+        const nm = e.name || e.ticker || e.symbol || e.title || "事件";
+        document.getElementById("modalTitle").textContent =
+          (TYPE_NAME[e.type] || (e._type && TYPE_NAME[e._type]) || "事件") +
+          " · " +
+          nm;
+        const b = document.getElementById("modalBody");
+        const kv = (k, v, full) =>
+          `<div class="kv ${full ? "full" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+        let rows = "";
+        if (e.title) rows += kv("标题", escapeHtml(e.title), true);
+        if (e.time) rows += kv("时间 (HKT)", e.time, true);
+        if (e.type) rows += kv("类型", TYPE_NAME[e.type] || e.type);
+        if (e.ticker || e.symbol)
+          rows += kv("代码", escapeHtml(e.ticker || e.symbol));
+        if (e.name) rows += kv("名称", escapeHtml(e.name));
+        if (e.liquidity_tier)
+          rows += kv("级别 (3400)", tierBadge(e.liquidity_tier));
+        if (e.price != null) rows += kv("现价", e.price);
+        if (e.high52 != null) rows += kv("52周高", e.high52);
+        if (e.low52 != null) rows += kv("52周低", e.low52);
+        if (e.pos != null) rows += kv("52周位置", e.pos + "%");
+        if (e.direction)
+          rows += kv(
+            "方向",
+            e.direction === "up" ? "▲ 逼近新高" : "▼ 逼近新低",
+          );
+        if (e.pct != null) rows += kv("当日涨跌", e.pct + "%");
+        if (e.consecutive_days != null)
+          rows += kv("连续天数", e.consecutive_days);
+        if (e.volume_ratio != null)
+          rows += kv("放量倍数", e.volume_ratio + "x");
+        if (e.expected != null) rows += kv("预期", e.expected);
+        if (e.actual != null) rows += kv("实际", e.actual);
+        if (e.country || e.market)
+          rows += kv("国家/市场", e.country || e.market);
+        if (e.importance != null)
+          rows += kv(
+            "重要性",
+            `<span class="star">${stars(e.importance)}</span> (${e.importance})`,
+          );
+        if (e.asset_class) rows += kv("资产类别", e.asset_class);
+        if (e.heat != null) rows += kv("热度", e.heat);
+        if (e.summary) rows += kv("摘要", escapeHtml(e.summary), true);
+        if (e.url)
+          rows += kv(
+            "原文",
+            `<a href="${escapeHtml(e.url)}" target="_blank" rel="noopener">查看原文 ↗</a>`,
+            true,
+          );
+        if (e.source) rows += kv("数据源", escapeHtml(e.source), true);
+        b.innerHTML = rows || '<div class="empty">无详情</div>';
+        document.getElementById("modalMask").classList.add("show");
+      }
+      function closeModal() {
+        document.getElementById("modalMask").classList.remove("show");
+      }
+      document.getElementById("modalClose").onclick = closeModal;
+      document.getElementById("modalMask").addEventListener("click", (e) => {
+        if (e.target.id === "modalMask") closeModal();
+      });
+
+      /* ===== 控件 ===== */
+      document.getElementById("btnPrev").onclick = () => {
+        const d = new Date(state.date + "T12:00:00");
+        d.setDate(d.getDate() - 1);
+        setDate(d);
+      };
+      document.getElementById("btnNext").onclick = () => {
+        const d = new Date(state.date + "T12:00:00");
+        d.setDate(d.getDate() + 1);
+        setDate(d);
+      };
+      document.getElementById("btnToday").onclick = () => {
+        setDate(new Date());
+      };
+      document.getElementById("datePicker").addEventListener("change", (e) => {
+        if (e.target.value) setDate(new Date(e.target.value + "T12:00:00"));
+      });
+      function setDate(d) {
+        state.date =
+          d.getFullYear() +
+          "-" +
+          pad2(d.getMonth() + 1) +
+          "-" +
+          pad2(d.getDate());
+        document.getElementById("datePicker").value = state.date;
+        loadAll();
+      }
+      document.querySelectorAll(".type-toggle").forEach((btn) => {
+        btn.onclick = () => {
+          btn.classList.toggle("active");
+          const t = btn.dataset.t;
+          if (btn.classList.contains("active")) state.filters.types.add(t);
+          else state.filters.types.delete(t);
+          renderCalendar();
+        };
+      });
+      document.querySelectorAll(".tier-toggle").forEach((btn) => {
+        btn.onclick = () => {
+          btn.classList.toggle("active");
+          const t = btn.dataset.t;
+          if (btn.classList.contains("active")) state.filters.tiers.add(t);
+          else state.filters.tiers.delete(t);
+          renderCalendar();
+        };
+      });
+
+      /* ===== 每日延迟回顾 (Daily Review) ===== */
+      const DR_MARKETS = [
+        ["us", "🇺🇸", "US"],
+        ["cn", "🇨🇳", "CN"],
+        ["hk", "🇭🇰", "HK"],
+        ["jp", "🇯🇵", "JP"],
+        ["uk", "🇬🇧", "UK"],
+        ["fr", "🇫🇷", "FR"],
+        ["de", "🇩🇪", "DE"],
+      ];
+      function toggleDailyReview() {
+        const p = document.getElementById("dailyReviewPanel");
+        const b = document.getElementById("drBody");
+        const open = b.style.display !== "none";
+        b.style.display = open ? "none" : "block";
+        p.classList.toggle("open", !open);
+        if (!open && !document.getElementById("drBody").dataset.loaded)
+          loadDailyReview();
+      }
+      function fmtTurnover(v) {
+        if (v == null) return "—";
+        if (v >= 1e12) return (v / 1e12).toFixed(2) + "T";
+        if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
+        if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+        return v.toFixed(0);
+      }
+      function loadDailyReview() {
+        const sub = document.getElementById("drSub"),
+          meta = document.getElementById("drMeta"),
+          hs = document.getElementById("drHotStocks"),
+          nw = document.getElementById("drNews"),
+          vol = document.getElementById("drVolume"),
+          tl = document.getElementById("drTimeline");
+        fetch("/api/event_map/daily_review")
+          .then((r) => r.json())
+          .then((d) => {
+            document.getElementById("drBody").dataset.loaded = "1";
+            if (d.error) {
+              sub.textContent = "· " + d.error;
+              hs.innerHTML = `<div class="dr-empty">${d.error}</div>`;
+              return;
+            }
+            sub.textContent = "· " + d.date;
+            meta.innerHTML = `<span>📅 回顾日期 <b>${d.date}</b></span><span>🕐 生成 <b>${d.generated_at || ""}</b></span>`;
+            renderDrHotStocks(d.hot_stocks || {}, hs);
+            renderDrNews(d.news || [], nw);
+            renderDrVolume(d.volume_categories || [], vol);
+            renderDrTimeline(d, tl);
+          })
+          .catch((e) => {
+            hs.innerHTML = `<div class="dr-empty">加载失败</div>`;
+          });
+      }
+      function renderDrHotStocks(hot, el) {
+        if (!Object.keys(hot).length) {
+          el.innerHTML = `<div class="dr-empty">无热点数据</div>`;
+          return;
+        }
+        let html = "";
+        for (const [mkt, flag, label] of DR_MARKETS) {
+          const arr = hot[mkt] || [];
+          if (!arr.length) continue;
+          html += `<div class="dr-mkt"><div class="dr-mkt-head">${flag} ${label} <span class="cnt">Top${arr.length}</span></div>`;
+          for (const s of arr.slice(0, 6)) {
+            const chg = s.change_pct_30d;
+            const chgCls = chg > 0 ? "up" : chg < 0 ? "down" : "";
+            html +=
+              `<div class="dr-stk"><span class="rk">${s.rank}</span>` +
+              `<span class="sn">${escapeHtml(s.name || s.ticker)}</span>` +
+              `<span class="sector">${escapeHtml(s.sector || "")}</span>` +
+              `<span class="sr ${chgCls}">${chg != null ? chg.toFixed(1) + "%" : "—"}</span>` +
+              `<span class="sr">${fmtTurnover(s.avg_turnover)}</span></div>`;
+          }
+          if (arr.length > 6)
+            html += `<div style="text-align:center;font-size:11px;color:var(--muted);padding:3px">… 共 ${arr.length} 只</div>`;
+          html += `</div>`;
+        }
+        el.innerHTML = html || `<div class="dr-empty">无数据</div>`;
+      }
+      function renderDrNews(news, el) {
+        if (!news.length) {
+          el.innerHTML = `<div class="dr-empty">无重要财经事件</div>`;
+          return;
+        }
+        // 取前12条按重要性排序
+        const list = news
+          .slice()
+          .sort((a, b) => (b.importance || 0) - (a.importance || 0))
+          .slice(0, 12);
+        let html = "";
+        for (const n of list) {
+          const lv = Math.min(3, n.importance || 2);
+          html +=
+            `<div class="dr-event lv${lv}"><span class="et">${escapeHtml(n.time || "")}</span>` +
+            `<span class="etx"><div class="tt">${escapeHtml(n.title || "")}</div>` +
+            `<div class="cty">${escapeHtml(n.region || "")}</div></span>` +
+            `<span class="imp">${stars(n.importance || 0)}</span></div>`;
+        }
+        el.innerHTML = html;
+      }
+      function renderDrVolume(vc, el) {
+        if (!vc.length) {
+          el.innerHTML = `<div class="dr-empty">无持续放量商品</div>`;
+          return;
+        }
+        let html = "";
+        for (const g of vc) {
+          const dirUp = g.direction.includes("上涨");
+          const dirDn = g.direction.includes("下跌");
+          html +=
+            `<div class="dr-vol"><span class="vg">${escapeHtml(g.group)}</span>` +
+            `<span class="vd ${dirUp ? "up" : dirDn ? "down" : ""}">${dirUp && dirDn ? "⇅" : dirUp ? "▲" : dirDn ? "▼" : "→"} ${escapeHtml(g.direction)}</span>` +
+            `<span class="vmeta">持续 ${g.hours_sustained || 0}h</span>` +
+            `<span class="vpeak">峰值 ${g.peak_rate || 0}x</span></div>` +
+            `<div class="dr-vol-detail">${(g.symbols || [])
+              .map(
+                (s) =>
+                  `<span class="sym ${s.direction === "上涨" ? "up" : s.direction === "下跌" ? "down" : ""}"><b>${escapeHtml(s.symbol)}</b> ${s.direction === "上涨" ? "▲" : s.direction === "下跌" ? "▼" : "→"} ${s.hours_sustained || 0}h/${s.peak_rate || 0}x</span>`,
+              )
+              .join("")}</div>`;
+        }
+        el.innerHTML = html;
+      }
+      function renderDrTimeline(d, el) {
+        // 合并 财报 + 经济事件 + 新闻, 按时间排序
+        const rows = [];
+        (d.earnings || []).forEach((e) =>
+          rows.push({
+            time: e.time,
+            title: `财报: ${e.name}`,
+            country: e.name,
+            tag: "财报",
+            tagc: "#b91c1c",
+          }),
+        );
+        (d.economic || []).forEach((e) =>
+          rows.push({
+            time: e.time,
+            title: e.title,
+            country: e.country,
+            tag: "经济",
+            tagc: "#2563eb",
+          }),
+        );
+        (d.news || []).forEach((n) =>
+          rows.push({
+            time: n.time,
+            title: n.title,
+            country: n.region,
+            tag: "新闻",
+            tagc: "#b8860b",
+          }),
+        );
+        rows.sort((a, b) => a.time.localeCompare(b.time)).reverse();
+        if (!rows.length) {
+          el.innerHTML = `<div class="dr-empty">无时间线</div>`;
+          return;
+        }
+        let html = "";
+        for (const r of rows.slice(0, 30)) {
+          html +=
+            `<div class="dr-tl-row"><span class="tl-time">${escapeHtml(r.time)}</span>` +
+            `<span class="tl-tag" style="background:${r.tagc}">${r.tag}</span>` +
+            `<span class="tl-title">${escapeHtml(r.title)}</span>` +
+            `<span class="tl-country">${escapeHtml(r.country || "")}</span></div>`;
+        }
+        el.innerHTML = html;
+      }
+      /* ===== Init ===== */
+      document.getElementById("datePicker").value = state.date;
+      loadAll();
+      setInterval(() => {
+        if (document.visibilityState === "visible") loadAll();
+      }, 120000);
+    </script>
+  </body>
+</html>
