@@ -1,0 +1,13 @@
+{
+  "NVDA": { "name": "英伟达", "aliases": ["Nvidia", "NVIDIA", "英伟达"] },
+  "AAPL": { "name": "苹果", "aliases": ["Apple", "苹果公司", "苹果"] },
+  "MSFT": { "name": "微软", "aliases": ["Microsoft", "微软"] },
+  "GOOGL": { "name": "谷歌", "aliases": ["Google", "Alphabet", "谷歌"] },
+  "GOOG": { "name": "谷歌", "aliases": [] },
+  "AMZN": { "name": "亚马逊", "aliases": ["Amazon", "亚马逊"] },
+  "META": { "name": "Meta", "aliases": ["Meta Platforms", "Meta"] },
+  "TSLA": { "name": "特斯拉", "aliases": ["Tesla", "特斯拉"] },
+  "AVGO": { "name": "博通", "aliases": ["Broadcom", "博通"] },
+  "TSM": { "name": "台积电", "aliases": ["TSMC", "台积电"] },
+  "BRK.B": { "name": "伯克希尔", "aliases": ["Berkshire", "伯克希尔"] }
+}

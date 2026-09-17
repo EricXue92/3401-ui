@@ -1,0 +1,26 @@
+[
+ {
+  "title": "CPI m/m",
+  "country": "CAD",
+  "date": "2026-09-14T08:30:00-04:00",
+  "impact": "High",
+  "forecast": "-0.1%",
+  "previous": "0.5%"
+ },
+ {
+  "title": "Median CPI y/y",
+  "country": "CAD",
+  "date": "2026-09-14T08:30:00-04:00",
+  "impact": "High",
+  "forecast": "2.0%",
+  "previous": "2.0%"
+ },
+ {
+  "title": "BRICS Summit",
+  "country": "All",
+  "date": "2026-09-13T04:15:00-04:00",
+  "impact": "Low",
+  "forecast": "",
+  "previous": ""
+ }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-10-30",
+    "time": "16:00",
+    "title": "中央政治局会议（预计，分析研究经济形势）",
+    "importance": 4,
+    "country": "中国",
+    "confirmed": false
+  },
+  {
+    "date": "2026-12-11",
+    "time": "09:00",
+    "title": "中央经济工作会议（预计）",
+    "importance": 4,
+    "country": "中国",
+    "confirmed": false
+  }
+]

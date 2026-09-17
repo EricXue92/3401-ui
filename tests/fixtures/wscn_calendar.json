@@ -1,0 +1,62 @@
+{
+ "code": 20000,
+ "message": "OK",
+ "data": {
+  "items": [
+   {
+    "id": 1591949,
+    "public_date": 1789635600,
+    "observation_date": "2026-08-01",
+    "wscn_ticker": "EA111955",
+    "country": "欧元区",
+    "title": "8月核心调和CPI同比终值",
+    "event": "核心调和CPI同比",
+    "country_id": "EA",
+    "quantity": "",
+    "unit": "%",
+    "importance": 2,
+    "mark": "BB",
+    "push_status": false,
+    "flag_uri": "https://wpimg-wscn.awtmt.com/36e5a3fc-e45d-4a66-ae52-240d231779d9.jpg",
+    "calendar_key": "0a09f68885d78c545775fb0bc66d4885",
+    "actual": "",
+    "forecast": "2.4",
+    "previous": "2.4",
+    "revised": "",
+    "period": "月",
+    "calendar_type": "FD",
+    "subscribe_status": false,
+    "uri": "https://wallstreetcn.com/calendar/EA111955/overview",
+    "assets": "cmd,fx,bd",
+    "foresight": ""
+   },
+   {
+    "id": 15035,
+    "public_date": 1789617720,
+    "observation_date": "",
+    "wscn_ticker": "",
+    "country": "中国",
+    "title": "华为全联接大会 2026（上海）",
+    "event": "",
+    "country_id": "CN",
+    "quantity": "",
+    "unit": "",
+    "importance": 4,
+    "mark": "",
+    "push_status": false,
+    "flag_uri": "https://wpimg-wscn.awtmt.com/cef1c0c9-42b2-420a-b2f0-661a89ba8876.jpg",
+    "calendar_key": "",
+    "actual": "",
+    "forecast": "",
+    "previous": "",
+    "revised": "",
+    "period": "",
+    "calendar_type": "FE",
+    "subscribe_status": false,
+    "uri": "",
+    "assets": "",
+    "foresight": "前瞻 | 第十一届华为全联接大会9月17-19日在上海举办。据华为，大会围绕AI基础设施与行业智能化，或发布算力新品与伙伴计划，呼应AI算力景气周期。此前在2026世界人工智能大会上真机首秀的昇腾950超节点（Atlas 950 SuperPoD），有望在此次大会上公布更多商用细节与实测数据。"
+   }
+  ]
+ }
+}
