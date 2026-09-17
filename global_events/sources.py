@@ -346,7 +346,7 @@ def parse_gnews(xml_text, category_hint):
             out.append(_event(
                 kind="breaking", category=cat, title=title.strip(), summary=src_name,
                 event_time=rfc822_to_hkt(pub), importance=normalize_importance("gnews", 1), reading_num=1,
-                source="gnews", source_id=guid or None, url=_s(_rss_tag(block, "link"), 1024),
+                source="gnews", source_id=_s(guid, 512), url=_s(_rss_tag(block, "link"), 1024),
                 dedup_key=make_dedup_key("gnews", guid or title),
             ))
         except Exception as e:

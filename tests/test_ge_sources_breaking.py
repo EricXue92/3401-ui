@@ -105,6 +105,9 @@ class GnewsTest(unittest.TestCase):
         self.assertEqual(e["reading_num"], 1)
         self.assertEqual(e["event_time"], datetime(2026, 9, 17, 7, 42, 0))
         self.assertTrue(e["url"].startswith("https://news.google.com/rss/articles/"))
+        self.assertLessEqual(len(e["source_id"]), 512)
+        long_xml = _text("gnews.xml").replace("</guid>", "X" * 600 + "</guid>", 1)
+        self.assertEqual(len(S.parse_gnews(long_xml, "central_bank")[0]["source_id"]), 512)
         import re as _re
         guid = _re.search(r"<guid[^>]*>(.*?)</guid>", _text("gnews.xml")).group(1)
         self.assertEqual(e["dedup_key"], S.make_dedup_key("gnews", guid))

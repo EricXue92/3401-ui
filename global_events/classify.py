@@ -22,7 +22,7 @@ CATEGORY_RULES = [
     ("central_bank", ["联储", "FOMC", "央行", "议息", "政策利率", "LPR", "加息", "降息", "缩表",
                       "鲍威尔", "沃什", "植田", "拉加德",
                       "Fed", "Federal Reserve", "rate decision", "ECB", "BOJ", "Bank of England",
-                      "interest rate", "interest rates"]),
+                      "interest rate", "interest rates", "Monetary Policy", "Bank Rate", "Policy Rate", "MPC"]),
     ("inflation", ["CPI", "PCE", "PPI", "通胀", "inflation"]),
     ("jobs", ["非农", "失业", "ADP", "就业", "payroll", "payrolls", "jobless", "unemployment"]),
     ("growth", ["GDP", "PMI", "零售销售", "工业产出", "消费者信心", "retail sales"]),

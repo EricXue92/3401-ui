@@ -10,6 +10,10 @@ class CategorizeTest(unittest.TestCase):
         self.assertEqual(categorize("时隔三年多！美联储重启加息25个基点"), "central_bank")
         self.assertEqual(categorize("Fed raises interest rates by quarter point"), "central_bank")
 
+    def test_central_bank_ff_titles(self):
+        self.assertEqual(categorize("MPC Official Bank Rate Votes"), "central_bank")
+        self.assertEqual(categorize("Monetary Policy Summary"), "central_bank")
+
     def test_inflation(self):
         self.assertEqual(categorize("8月核心调和CPI同比终值"), "inflation")
         self.assertEqual(categorize("US inflation cools in August"), "inflation")
