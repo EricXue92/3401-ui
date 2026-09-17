@@ -51,6 +51,8 @@ class SaveTest(unittest.TestCase):
         self.assertIn("INSERT INTO event_global", sql)
         self.assertIn("ON DUPLICATE KEY UPDATE", sql)
         self.assertIn("heat_base=VALUES(heat_base)", sql)
+        self.assertIn("event_time=VALUES(event_time)", sql)
+        self.assertIn("title=VALUES(title)", sql)
         self.assertEqual(params[0], "breaking")
         self.assertEqual(params[5], "2026-09-17T12:00:00")     # datetime → ISO
         self.assertEqual(params[7], 42.5)
@@ -164,6 +166,18 @@ class MainTest(unittest.TestCase):
         self.assertEqual(r["wscn_calendar"], (True, 2, None))
         self.assertEqual(r["ff_calendar"][0], False)
         self.assertEqual(r["dailyhot"], (None, 0, "disabled"))
+
+        with mock.patch.object(C.S, "fetch_wscn_calendar", return_value=[1, 2]), \
+             mock.patch.object(C.S, "fetch_ff_calendar", side_effect=OSError("nope")), \
+             mock.patch.object(C.S, "fetch_wscn_live", return_value=[]), \
+             mock.patch.object(C.S, "fetch_cls_roll", return_value=[]), \
+             mock.patch.object(C.S, "fetch_cls_hot", return_value=[]), \
+             mock.patch.object(C.S, "fetch_gnews", return_value=[]), \
+             mock.patch.object(C.config, "GLOBAL_EVENTS_HOT_URL", ""), \
+             mock.patch.object(C.config, "GLOBAL_EVENTS_CLS_ENABLED", False):
+            r = C.run_check()
+        self.assertEqual(r["cls_roll"], (None, 0, "disabled"))
+        self.assertEqual(r["cls_hot"], (None, 0, "disabled"))
 
 
 if __name__ == "__main__":

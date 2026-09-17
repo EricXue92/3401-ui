@@ -35,11 +35,11 @@ add_if_missing "event_us_earn_refresh" \
 
 # 5. 全球已排程事件 (每30分钟)
 add_if_missing "collect_global_events.py --calendar" \
-"*/30 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --calendar >> /tmp/event_map/global_events.log 2>&1"
+"*/30 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --calendar >> /tmp/event_map/global_monitor.log 2>&1"
 
 # 6. 全球突发快讯 (每3分钟)
 add_if_missing "collect_global_events.py --breaking" \
-"*/3 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --breaking >> /tmp/event_map/global_events.log 2>&1"
+"*/3 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --breaking >> /tmp/event_map/global_monitor.log 2>&1"
 
 # 写回
 crontab /tmp/ev_cron_current.txt

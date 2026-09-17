@@ -45,6 +45,7 @@ const payload = {
             title: "8月CPI同比",
             expected: "2.9",
             actual: "3.1",
+            country: "美国<b>x</b>",
           }
         : i === 1
           ? { url: "javascript:alert(1)" }
@@ -155,6 +156,10 @@ await page.waitForSelector("#modalMask.show");
 assert(
   "点击打开 modal 含原文链接",
   await page.$eval("#modalBody", (e) => /查看原文/.test(e.textContent)),
+);
+assert(
+  "国家/市场字段转义, 不注入 <b>",
+  await page.$eval("#modalBody", (e) => !e.innerHTML.includes("<b>x</b>")),
 );
 await page.click("#modalClose");
 await page.click(

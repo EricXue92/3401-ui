@@ -60,7 +60,7 @@ def _is_cjk(s):
 def has_cooccurrence(title, source, others):
     lang = _is_cjk(title)
     for o_title, o_source in others:
-        if o_source == source or _is_cjk(o_title) != lang:
+        if o_source.split("_")[0] == source.split("_")[0] or _is_cjk(o_title) != lang:
             continue
         if similarity(title, o_title) >= COOCCUR_THRESHOLD:
             return True

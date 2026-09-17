@@ -37,6 +37,7 @@ class StaticDataTest(unittest.TestCase):
         self.assertIn("CREATE TABLE IF NOT EXISTS `event_global`", sql)
         self.assertIn("`heat_base`", sql)
         self.assertIn("UNIQUE KEY `uk_global_dedup` (`dedup_key`)", sql)
+        self.assertIn("`url`          VARCHAR(1024)         DEFAULT NULL COMMENT '原文链接',", sql)
 
     def test_config_flags(self):
         import config

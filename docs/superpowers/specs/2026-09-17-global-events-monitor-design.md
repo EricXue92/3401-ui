@@ -38,8 +38,8 @@
 | S5  | Google News RSS            | `news.google.com/rss/search?q=<关键词>+when:1d&hl=en-US&gl=US&ceid=US:en`             | 英文媒体 24h 报道，每查询 ≤ 100 条                                                         | ✅            | ✅                                   | 英文媒体热度       |
 | S6  | DailyHotApi（自部署 Node） | `http://127.0.0.1:6688/weibo` 等                                                      | 微博/百度/头条热榜，`hot` 热度值                                                           | 公共示例站 ❌ | 需 docker 部署                       | 社媒热度加分，可选 |
 | S7  | 现有 `event_earnings` 表   | 库内                                                                                  | 美股财报日期（yfinance，NVDA/AAPL/MSFT 等已全覆盖）                                        | —             | —                                    | 巨头财报           |
-| S8  | 手工 JSON                  | `data/cn_policy_events.json`                                                          | 政治局会议、中央经济工作会议、两会等                                                       | —             | —                                    | 中国政策           |
-| S9  | 手工 JSON                  | `data/mega_caps.json`                                                                 | 市值 > 1 万亿美元白名单：NVDA, AAPL, MSFT, GOOGL, GOOG, AMZN, META, TSLA, AVGO, TSM, BRK.B | —             | —                                    | 白名单             |
+| S8  | 手工 JSON                  | `global_events/static/cn_policy_events.json`                                                          | 政治局会议、中央经济工作会议、两会等                                                       | —             | —                                    | 中国政策           |
+| S9  | 手工 JSON                  | `global_events/static/mega_caps.json`                                                                 | 市值 > 1 万亿美元白名单：NVDA, AAPL, MSFT, GOOGL, GOOG, AMZN, META, TSLA, AVGO, TSM, BRK.B | —             | —                                    | 白名单             |
 
 **为什么不以现有百度经济日历为主源**：从线上 API 实测 2026-09-17 共 85 条，重要性分布 1 星 61、2 星 21、3 星 1（仅英国央行），"COMEX 黄金库存"被标 2 星；09-18 仅 7 条，10-02 非农日 0 条。重要性不可用、未来覆盖薄。保留为最后兜底，不改动现有采集。
 
@@ -308,7 +308,7 @@ DailyHotApi 部署（可选，P2 末尾）：`docker run -d --name dailyhot -p 6
 | `scripts/db_writer.py`                                 | 新增 `save_global_events()`                                               |
 | `scripts/install_cron.sh`、`README.md`                 | 追加两条 cron 与数据源表                                                  |
 | `config.py`                                            | 新增 `GLOBAL_EVENTS_CLS_ENABLED`、`GLOBAL_EVENTS_HOT_URL`                 |
-| `data/mega_caps.json`、`data/cn_policy_events.json`    | 新增                                                                      |
+| `global_events/static/mega_caps.json`、`global_events/static/cn_policy_events.json`    | 新增                                                                      |
 | `server.py`                                            | 新增 `/api/event_map/global_events`                                       |
 | `templates/event_map.html`                             | 新增 `.global-panel` 样式、DOM、`loadGlobalEvents` / `renderGlobalEvents` |
 | `tests/test_global_events.py`、`tests/fixtures/*.json` | 新增                                                                      |

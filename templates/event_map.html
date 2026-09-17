@@ -1710,7 +1710,7 @@
       function stars(imp) {
         imp = Number(imp);
         if (!imp || imp < 1) return "";
-        return "★".repeat(Math.min(3, Math.round(imp)));
+        return "★".repeat(Math.min(4, Math.round(imp)));
       }
       const TYPE_COLOR = {
         earnings: "#2563eb",
@@ -1922,6 +1922,10 @@
       function renderGlobalEvents() {
         const j = state.ge;
         if (!j) return;
+        renderGlobalToday(j);
+        renderGlobalCalendar(j);
+      }
+      function renderGlobalToday(j) {
         const bad = Object.entries(j.sources || {})
           .filter(([k, v]) => v && v.ok === false)
           .map(([k]) => k);
@@ -1943,6 +1947,8 @@
           t.classList.toggle("scrolling", today.length > 6);
           geBind(t);
         }
+      }
+      function renderGlobalCalendar(j) {
         // 日历 14 格 (从 window_end 当天起)
         const up = j.upcoming || {};
         const cal = document.getElementById("geCal");
@@ -1978,7 +1984,7 @@
         cal.querySelectorAll(".ge-cell").forEach((c) => {
           c.onclick = () => {
             state.geSel = c.dataset.date;
-            renderGlobalEvents();
+            renderGlobalCalendar(state.ge);
           };
         });
         cal
@@ -2347,7 +2353,7 @@
           `<div class="kv ${full ? "full" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
         let rows = "";
         if (e.title) rows += kv("标题", escapeHtml(e.title), true);
-        if (e.time) rows += kv("时间 (HKT)", e.time, true);
+        if (e.time) rows += kv("时间 (HKT)", escapeHtml(e.time), true);
         if (e.type) rows += kv("类型", TYPE_NAME[e.type] || e.type);
         if (e.ticker || e.symbol)
           rows += kv("代码", escapeHtml(e.ticker || e.symbol));
@@ -2368,10 +2374,10 @@
           rows += kv("连续天数", e.consecutive_days);
         if (e.volume_ratio != null)
           rows += kv("放量倍数", e.volume_ratio + "x");
-        if (e.expected != null) rows += kv("预期", e.expected);
-        if (e.actual != null) rows += kv("实际", e.actual);
+        if (e.expected != null) rows += kv("预期", escapeHtml(e.expected));
+        if (e.actual != null) rows += kv("实际", escapeHtml(e.actual));
         if (e.country || e.market)
-          rows += kv("国家/市场", e.country || e.market);
+          rows += kv("国家/市场", escapeHtml(e.country || e.market));
         if (e.importance != null)
           rows += kv(
             "重要性",

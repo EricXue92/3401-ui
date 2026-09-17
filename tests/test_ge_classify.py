@@ -51,6 +51,13 @@ class CategorizeTest(unittest.TestCase):
         # "oil" 不应从 "boil" 命中
         self.assertEqual(categorize("Water boils at 100 degrees"), "other")
 
+    def test_connect_word_no_longer_false_positive(self):
+        # "Connect" 单词太宽泛, 改为要求 "Meta Connect" 完整短语
+        self.assertEqual(categorize("Please connect the cable"), "other")
+
+    def test_cn_policy_npc(self):
+        self.assertEqual(categorize("十四届全国人大常委会第十次会议举行"), "cn_policy")
+
     def test_mega_ticker_without_keyword_is_earnings(self):
         self.assertEqual(categorize("Broadcom announces new chip", tickers="AVGO"), "earnings")
 
@@ -107,6 +114,9 @@ class MegaTest(unittest.TestCase):
 
     def test_none(self):
         self.assertEqual(mega_tickers_in("欧元区CPI", None), [])
+
+    def test_by_ticker_string_brk_b(self):
+        self.assertEqual(mega_tickers_in("x", "BRK-B"), ["BRK-B"])
 
 
 if __name__ == "__main__":

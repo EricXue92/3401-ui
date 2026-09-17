@@ -73,6 +73,10 @@ class CooccurrenceTest(unittest.TestCase):
         others = [("Fed raises interest rates", "gnews")]
         self.assertFalse(SC.has_cooccurrence("美联储加息", "wscn_live", others))
 
+    def test_same_family_ignored(self):
+        others = [("美联储重启加息25个基点", "cls_hot")]
+        self.assertFalse(SC.has_cooccurrence("美联储重启加息25个基点", "cls_roll", others))
+
 
 class SocialTest(unittest.TestCase):
     def test_bigrams(self):

@@ -40,8 +40,10 @@ def update_health(source, ok, count=0, error=None, path=None):
     h[source] = cur
     try:
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(h, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, p)
     except Exception as e:
         print("WARN health write: %s" % str(e).splitlines()[0])
     return h

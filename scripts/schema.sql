@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `event_global` (
   `tickers`      VARCHAR(255)          DEFAULT NULL COMMENT '关联标的, 逗号分隔',
   `source`       VARCHAR(32)  NOT NULL COMMENT 'wscn_calendar/ff_calendar/wscn_live/cls_roll/cls_hot/gnews',
   `source_id`    VARCHAR(64)           DEFAULT NULL COMMENT '来源侧 id',
-  `url`          VARCHAR(512)          DEFAULT NULL COMMENT '原文链接',
+  `url`          VARCHAR(1024)         DEFAULT NULL COMMENT '原文链接',
   `dedup_key`    VARCHAR(64)  NOT NULL COMMENT 'sha1 去重键',
   `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
   `updated_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

@@ -124,9 +124,6 @@ def run_check():
         ("wscn_calendar", lambda: S.fetch_wscn_calendar(now, days=7)),
         ("ff_calendar", S.fetch_ff_calendar),
         ("wscn_live", lambda: S.fetch_wscn_live(limit=5)),
-        ("cls_roll", lambda: S.fetch_cls_roll(rn=5)),
-        ("cls_hot", S.fetch_cls_hot),
-        ("gnews", S.fetch_gnews),
     ]
     out = {}
     for name, fn in probes:
@@ -134,6 +131,19 @@ def run_check():
             out[name] = (True, len(fn()), None)
         except Exception as e:
             out[name] = (False, 0, _err(e))
+    if config.GLOBAL_EVENTS_CLS_ENABLED:
+        for name, fn in (("cls_roll", lambda: S.fetch_cls_roll(rn=5)), ("cls_hot", S.fetch_cls_hot)):
+            try:
+                out[name] = (True, len(fn()), None)
+            except Exception as e:
+                out[name] = (False, 0, _err(e))
+    else:
+        out["cls_roll"] = (None, 0, "disabled")
+        out["cls_hot"] = (None, 0, "disabled")
+    try:
+        out["gnews"] = (True, len(S.fetch_gnews()), None)
+    except Exception as e:
+        out["gnews"] = (False, 0, _err(e))
     if config.GLOBAL_EVENTS_HOT_URL:
         try:
             out["dailyhot"] = (True, len(S.fetch_dailyhot(config.GLOBAL_EVENTS_HOT_URL)), None)
@@ -141,6 +151,8 @@ def run_check():
             out["dailyhot"] = (False, 0, _err(e))
     else:
         out["dailyhot"] = (None, 0, "disabled")
+    print("flags: GLOBAL_EVENTS_CLS_ENABLED=%s GLOBAL_EVENTS_HOT_URL=%s" %
+          (bool(config.GLOBAL_EVENTS_CLS_ENABLED), config.GLOBAL_EVENTS_HOT_URL or "-"))
     for k, (ok, cnt, err) in out.items():
         print("%-14s %s %s" % (k, "OK  " if ok else ("--  " if ok is None else "FAIL"), cnt if ok else (err or "")))
     return out

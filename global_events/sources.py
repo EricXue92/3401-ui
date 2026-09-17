@@ -112,17 +112,21 @@ def parse_wscn_calendar(payload):
     out = []
     items = ((payload or {}).get("data") or {}).get("items") or []
     for it in items:
-        title = _s(it.get("title"), 255)
-        if not title or it.get("public_date") is None:
+        try:
+            title = _s(it.get("title"), 255)
+            if not title or it.get("public_date") is None:
+                continue
+            out.append(_event(
+                kind="scheduled", category=categorize(title), title=title,
+                country=_s(it.get("country"), 32), event_time=ts_to_hkt(it["public_date"]),
+                importance=normalize_importance("wscn_calendar", it.get("importance")),
+                expected=_s(it.get("forecast")), previous=_s(it.get("previous")), actual=_s(it.get("actual")),
+                source="wscn_calendar", source_id=str(it.get("id")), url=_s(it.get("uri"), 1024),
+                dedup_key=make_dedup_key("wscn_calendar", it.get("id")),
+            ))
+        except Exception as e:
+            print("WARN wscn_calendar item skipped: %s" % str(e).splitlines()[0])
             continue
-        out.append(_event(
-            kind="scheduled", category=categorize(title), title=title,
-            country=_s(it.get("country"), 32), event_time=ts_to_hkt(it["public_date"]),
-            importance=normalize_importance("wscn_calendar", it.get("importance")),
-            expected=_s(it.get("forecast")), previous=_s(it.get("previous")), actual=_s(it.get("actual")),
-            source="wscn_calendar", source_id=str(it.get("id")), url=_s(it.get("uri"), 512),
-            dedup_key=make_dedup_key("wscn_calendar", it.get("id")),
-        ))
     return out
 
 
@@ -158,22 +162,26 @@ def fetch_wscn_calendar(start, days=14):
 def parse_ff_calendar(items):
     out = []
     for it in items or []:
-        impact = it.get("impact")
-        imp = normalize_importance("ff_calendar", impact)
-        if imp < 2:
+        try:
+            impact = it.get("impact")
+            imp = normalize_importance("ff_calendar", impact)
+            if imp < 2:
+                continue
+            raw_title = _s(it.get("title"), 255)
+            if not raw_title or not it.get("date"):
+                continue
+            title = _FF_TITLE_MAP.get(raw_title, raw_title)
+            code = it.get("country") or ""
+            out.append(_event(
+                kind="scheduled", category=categorize(raw_title + " " + title), title=title,
+                country=FF_COUNTRY.get(code, code or None), event_time=iso_to_hkt(it["date"]),
+                importance=imp, expected=_s(it.get("forecast")), previous=_s(it.get("previous")),
+                source="ff_calendar", source_id=None, url=None,
+                dedup_key=make_dedup_key("ff_calendar", code, raw_title, it["date"]),
+            ))
+        except Exception as e:
+            print("WARN ff_calendar item skipped: %s" % str(e).splitlines()[0])
             continue
-        raw_title = _s(it.get("title"), 255)
-        if not raw_title or not it.get("date"):
-            continue
-        title = _FF_TITLE_MAP.get(raw_title, raw_title)
-        code = it.get("country") or ""
-        out.append(_event(
-            kind="scheduled", category=categorize(raw_title + " " + title), title=title,
-            country=FF_COUNTRY.get(code, code or None), event_time=iso_to_hkt(it["date"]),
-            importance=imp, expected=_s(it.get("forecast")), previous=_s(it.get("previous")),
-            source="ff_calendar", source_id=None, url=None,
-            dedup_key=make_dedup_key("ff_calendar", code, raw_title, it["date"]),
-        ))
     return out
 
 
@@ -200,17 +208,21 @@ def parse_wscn_live(payload):
     out = []
     items = ((payload or {}).get("data") or {}).get("items") or []
     for it in items:
-        body = (it.get("content_text") or "").strip()
-        title = _title_from(it.get("title"), body)
-        if not title or it.get("display_time") is None:
+        try:
+            body = (it.get("content_text") or "").strip()
+            title = _title_from(it.get("title"), body)
+            if not title or it.get("display_time") is None:
+                continue
+            out.append(_event(
+                kind="breaking", category=categorize(title + " " + body[:120]), title=title,
+                summary=body or None, event_time=ts_to_hkt(it["display_time"]),
+                importance=normalize_importance("wscn_live", it.get("score")),
+                source="wscn_live", source_id=str(it.get("id")), url=_s(it.get("uri"), 1024),
+                dedup_key=make_dedup_key("wscn_live", it.get("id")),
+            ))
+        except Exception as e:
+            print("WARN wscn_live item skipped: %s" % str(e).splitlines()[0])
             continue
-        out.append(_event(
-            kind="breaking", category=categorize(title + " " + body[:120]), title=title,
-            summary=body or None, event_time=ts_to_hkt(it["display_time"]),
-            importance=normalize_importance("wscn_live", it.get("score")),
-            source="wscn_live", source_id=str(it.get("id")), url=_s(it.get("uri"), 512),
-            dedup_key=make_dedup_key("wscn_live", it.get("id")),
-        ))
     return out
 
 
@@ -237,18 +249,22 @@ def parse_cls_roll(payload):
     out = []
     items = ((payload or {}).get("data") or {}).get("roll_data") or []
     for it in items:
-        body = _cls_clean(it.get("content") or it.get("brief"))
-        title = _s(it.get("title"), 255) or (body[:80] if body else None)
-        if not title or it.get("ctime") is None:
+        try:
+            body = _cls_clean(it.get("content") or it.get("brief"))
+            title = _s(it.get("title"), 255) or (body[:80] if body else None)
+            if not title or it.get("ctime") is None:
+                continue
+            out.append(_event(
+                kind="breaking", category=categorize(title + " " + body[:120]), title=title,
+                summary=body or None, event_time=ts_to_hkt(it["ctime"]),
+                importance=normalize_importance("cls_roll", it.get("level")),
+                reading_num=int(it.get("reading_num") or 0) or None,
+                source="cls_roll", source_id=str(it.get("id")), url=_s(it.get("shareurl"), 1024),
+                dedup_key=make_dedup_key("cls_roll", it.get("id")),
+            ))
+        except Exception as e:
+            print("WARN cls_roll item skipped: %s" % str(e).splitlines()[0])
             continue
-        out.append(_event(
-            kind="breaking", category=categorize(title + " " + body[:120]), title=title,
-            summary=body or None, event_time=ts_to_hkt(it["ctime"]),
-            importance=normalize_importance("cls_roll", it.get("level")),
-            reading_num=int(it.get("reading_num") or 0) or None,
-            source="cls_roll", source_id=str(it.get("id")), url=_s(it.get("shareurl"), 512),
-            dedup_key=make_dedup_key("cls_roll", it.get("id")),
-        ))
     return out
 
 
@@ -262,17 +278,21 @@ def parse_cls_hot(payload):
     out = []
     items = (payload or {}).get("data") or []
     for rank, it in enumerate(items):
-        title = _s(it.get("title"), 255)
-        if not title or it.get("ctime") is None:
+        try:
+            title = _s(it.get("title"), 255)
+            if not title or it.get("ctime") is None:
+                continue
+            out.append(_event(
+                kind="breaking", category=categorize(title), title=title,
+                summary=_s(it.get("brief"), 500), event_time=ts_to_hkt(it["ctime"]),
+                importance=normalize_importance("cls_hot", rank),
+                reading_num=int(it.get("readNum") or 0) or None, tickers=_s(it.get("stocks"), 255),
+                source="cls_hot", source_id=str(it.get("id")), url="https://www.cls.cn/detail/%s" % it.get("id"),
+                dedup_key=make_dedup_key("cls_hot", it.get("id")),
+            ))
+        except Exception as e:
+            print("WARN cls_hot item skipped: %s" % str(e).splitlines()[0])
             continue
-        out.append(_event(
-            kind="breaking", category=categorize(title), title=title,
-            summary=_s(it.get("brief"), 500), event_time=ts_to_hkt(it["ctime"]),
-            importance=normalize_importance("cls_hot", rank),
-            reading_num=int(it.get("readNum") or 0) or None, tickers=_s(it.get("stocks"), 255),
-            source="cls_hot", source_id=str(it.get("id")), url="https://www.cls.cn/detail/%s" % it.get("id"),
-            dedup_key=make_dedup_key("cls_hot", it.get("id")),
-        ))
     return out
 
 
@@ -308,26 +328,30 @@ def _rss_tag(block, tag):
 def parse_gnews(xml_text, category_hint):
     out = []
     for block in _RSS_ITEM.findall(xml_text or ""):
-        raw_title = _rss_tag(block, "title")
-        pub = _rss_tag(block, "pubDate")
-        guid = _rss_tag(block, "guid")
-        if not raw_title or not pub:
+        try:
+            raw_title = _rss_tag(block, "title")
+            pub = _rss_tag(block, "pubDate")
+            guid = _rss_tag(block, "guid")
+            if not raw_title or not pub:
+                continue
+            # Google News 标题尾部带 " - 来源名"
+            if " - " in raw_title:
+                title, src_name = raw_title.rsplit(" - ", 1)
+            else:
+                title, src_name = raw_title, None
+            src_name = _rss_tag(block, "source") or src_name
+            cat = categorize(title)
+            if cat == "other":
+                cat = category_hint
+            out.append(_event(
+                kind="breaking", category=cat, title=title.strip(), summary=src_name,
+                event_time=rfc822_to_hkt(pub), importance=normalize_importance("gnews", 1), reading_num=1,
+                source="gnews", source_id=guid or None, url=_s(_rss_tag(block, "link"), 1024),
+                dedup_key=make_dedup_key("gnews", guid or title),
+            ))
+        except Exception as e:
+            print("WARN gnews item skipped: %s" % str(e).splitlines()[0])
             continue
-        # Google News 标题尾部带 " - 来源名"
-        if " - " in raw_title:
-            title, src_name = raw_title.rsplit(" - ", 1)
-        else:
-            title, src_name = raw_title, None
-        src_name = _rss_tag(block, "source") or src_name
-        cat = categorize(title)
-        if cat == "other":
-            cat = category_hint
-        out.append(_event(
-            kind="breaking", category=cat, title=title.strip(), summary=src_name,
-            event_time=rfc822_to_hkt(pub), importance=normalize_importance("gnews", 1), reading_num=1,
-            source="gnews", source_id=guid or None, url=_s(_rss_tag(block, "link"), 512),
-            dedup_key=make_dedup_key("gnews", guid or title),
-        ))
     return out
 
 

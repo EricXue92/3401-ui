@@ -82,8 +82,8 @@ crontab -l | {
   echo "0 6 */3 * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_us_earnings_future.py >> /tmp/event_map/us_earnings.log 2>&1"
   echo "0 6 * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && PYTHONPATH=/home/sdadmin/.local/lib/python3.10/site-packages /usr/bin/python3.10 collect_daily_review.py \$(date -d yesterday +\\%F) >> /tmp/event_map/daily_review.log 2>&1"
   echo "*/2 * * * * bash /home/sdadmin/.openclaw/workspace/projects/event-management-system/keepalive.sh >> /tmp/event_map/keepalive.log 2>&1"
-  echo "*/30 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --calendar >> /tmp/event_map/global_events.log 2>&1"
-  echo "*/3 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --breaking >> /tmp/event_map/global_events.log 2>&1"
+  echo "*/30 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --calendar >> /tmp/event_map/global_monitor.log 2>&1"
+  echo "*/3 * * * * cd /home/sdadmin/.openclaw/workspace/projects/event-management-system/scripts && python3 collect_global_events.py --breaking >> /tmp/event_map/global_monitor.log 2>&1"
 } | crontab -
 ```
 
@@ -166,4 +166,5 @@ event-management-system/
 部署後先跑 `python3 scripts/collect_global_events.py --check` 看各來源連通性, 再 `--all` 初始化。
 財聯社若被反爬: 環境變量 `GLOBAL_EVENTS_CLS_ENABLED=0`。社媒熱榜可選: 部署 DailyHotApi
 (`docker run -d --name dailyhot -p 6688:6688 imsyy/dailyhot-api`) 後設 `GLOBAL_EVENTS_HOT_URL=http://127.0.0.1:6688`。
+cron 行前加環境變量: `GLOBAL_EVENTS_CLS_ENABLED=0 python3 collect_global_events.py --breaking`。
 人工維護: `global_events/static/cn_policy_events.json` (中國政策會議)、`global_events/static/mega_caps.json` (萬億市值白名單)。

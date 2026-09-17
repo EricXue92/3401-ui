@@ -1436,7 +1436,8 @@ def api_global_events():
     sched = db.query(f"SELECT {_GE_COLS} FROM event_global WHERE kind='scheduled' "
                      f"AND event_time >= %s AND event_time < %s ORDER BY event_time", (start, horizon))
     brk = db.query(f"SELECT {_GE_COLS} FROM event_global WHERE kind='breaking' "
-                   f"AND event_time >= %s ORDER BY event_time DESC", (now - timedelta(hours=24),))
+                   f"AND event_time >= %s AND event_time <= %s ORDER BY event_time DESC",
+                   (now - timedelta(hours=24), now + timedelta(minutes=5)))
     try:
         extra_earnings = _ge_mega_earnings(start, horizon)
     except Exception as e:

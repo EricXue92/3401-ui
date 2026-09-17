@@ -60,6 +60,13 @@ class ClsRollTest(unittest.TestCase):
         self.assertTrue(evs[1]["title"].startswith("2年期日本国债收益率"))
         self.assertEqual(evs[1]["importance"], 2)
 
+    def test_bad_ctime_skipped_good_item_kept(self):
+        bad = {"id": 1, "title": "坏数据", "ctime": "abc"}
+        good = {"id": 2, "title": "美联储重启加息25个基点", "ctime": 1789635600, "level": "B"}
+        evs = S.parse_cls_roll({"data": {"roll_data": [bad, good]}})
+        self.assertEqual(len(evs), 1)
+        self.assertEqual(evs[0]["title"], "美联储重启加息25个基点")
+
     def test_fetch_signed(self):
         with mock.patch.object(S, "http_json", return_value={"data": {"roll_data": []}}) as m:
             S.fetch_cls_roll(rn=20, now_ts=1789600000)

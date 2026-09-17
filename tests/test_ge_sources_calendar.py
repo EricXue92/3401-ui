@@ -89,6 +89,20 @@ class FfCalendarParseTest(unittest.TestCase):
         self.assertEqual(evs[0]["country"], "美国")
         self.assertEqual(evs[0]["importance"], 2)
 
+    def test_bad_item_skipped_good_item_kept(self):
+        bad = {"title": "X", "country": "USD", "date": "not-a-date", "impact": "High"}
+        good = {
+            "title": "CPI m/m",
+            "country": "CAD",
+            "date": "2026-09-14T08:30:00-04:00",
+            "impact": "High",
+            "forecast": "-0.1%",
+            "previous": "0.5%",
+        }
+        evs = S.parse_ff_calendar([bad, good])
+        self.assertEqual(len(evs), 1)
+        self.assertEqual(evs[0]["title"], "CPI 环比")
+
 
 class ChunkTest(unittest.TestCase):
     def test_14_days_two_chunks_of_7(self):

@@ -31,7 +31,13 @@ class GlobalEventsApiTest(unittest.TestCase):
     def _get(self, rows_by_kind, earnings_rows=(), policy=(), health=None, qs=""):
         def fake_query(sql, params=None):
             if "FROM event_global" in sql:
-                return rows_by_kind.get("breaking" if "kind='breaking'" in sql else "scheduled", [])
+                if "kind='breaking'" in sql:
+                    rows = rows_by_kind.get("breaking", [])
+                    if params and len(params) >= 2:
+                        cutoff = params[1].strftime("%Y-%m-%d %H:%M:%S")
+                        rows = [r for r in rows if r["event_time"] <= cutoff]
+                    return rows
+                return rows_by_kind.get("scheduled", [])
             if "FROM event_earnings" in sql:
                 return list(earnings_rows)
             return []
@@ -66,14 +72,16 @@ class GlobalEventsApiTest(unittest.TestCase):
                 _row(kind="breaking", title="新鲜", event_time="2026-09-17 15:20:00", heat_base=80, heat_score=80, source="wscn_live"),
                 _row(kind="breaking", title="三小时前", event_time="2026-09-17 12:20:00", heat_base=80, heat_score=80, source="wscn_live"),
                 _row(kind="breaking", title="太旧", event_time="2026-09-17 03:20:00", heat_base=100, heat_score=100, source="wscn_live"),
+                _row(kind="breaking", title="未来", event_time="2026-09-18 03:00:00", heat_base=100, heat_score=100, source="wscn_live"),
             ],
         }
         j = self._get(rows)
         titles = [x["title"] for x in j["today"]]
-        self.assertEqual(titles, ["排程", "新鲜", "三小时前"])   # 100*0.5^4 = 6.25 < 20 被过滤
+        self.assertEqual(titles, ["排程", "新鲜", "三小时前"])   # 100*0.5^4 = 6.25 < 20 被过滤; 未来行超出上限被 SQL 过滤
         heats = {x["title"]: x["heat"] for x in j["today"]}
         self.assertEqual(heats["新鲜"], 80.0)
         self.assertEqual(heats["三小时前"], 40.0)
+        self.assertNotIn("未来", titles)
 
     def test_mega_earnings_and_policy_merged(self):
         earnings = [{"ticker": "NVDA", "event_time": "2026-09-18 04:00:00", "title": "NVDA 财报"}]
