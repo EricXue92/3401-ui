@@ -133,7 +133,7 @@ assert(
   /8月CPI同比/.test(items[0]) && /2\.9/.test(items[0]) && /3\.1/.test(items[0]),
   items[0],
 );
-assert("热度数字显示", /90/.test(items[0]));
+assert("不显示热度数字", !/\b90\b/.test(items[0]), items[0]);
 assert(
   ">6 条时滚动",
   await page.$eval("#geToday", (e) => e.classList.contains("scrolling")),

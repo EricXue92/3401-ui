@@ -328,7 +328,7 @@
       }
       .ge-item {
         display: grid;
-        grid-template-columns: 44px 20px 44px 1fr auto;
+        grid-template-columns: 20px 44px 1fr auto;
         align-items: center;
         gap: 8px;
         padding: 5px 8px;
@@ -1907,7 +1907,6 @@
             : "";
         const kind = e.kind === "scheduled" ? "scheduled" : "breaking";
         return `<div class="ge-item ${kind}" data-json="${encodeURIComponent(JSON.stringify(e))}">
-    <span class="ge-heat" style="--p:${p}%">${Math.round(p)}</span>
     <span class="ge-cat" title="${escapeHtml(e.category)}">${GE_CAT[e.category] || "📌"}</span>
     <span class="ge-time">${hhmm(e.time)}</span>
     <span class="ge-title" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}${ev}</span>
