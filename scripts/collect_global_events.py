@@ -32,7 +32,7 @@ from global_events import scoring as SC          # noqa: E402
 from global_events.health import update_health, HEALTH_PATH as _HP  # noqa: E402
 
 HEALTH_PATH = _HP
-CALENDAR_DAYS = 14
+CALENDAR_DAYS = 16   # API 的 upcoming 上界 = 明日 06:00 + 14 天, 比今天 00:00 起算多 ~1.3 天, 多拉 2 天防止末尾漏事件
 BREAKING_LOOKBACK_H = 24
 
 
