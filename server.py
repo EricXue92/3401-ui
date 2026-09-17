@@ -1386,9 +1386,15 @@ def _ge_is_breaking_news(it):
 def _ge_dedupe_breaking(items):
     """列表已按时间倒序; 相似标题 (difflib ≥ 0.6) 只保留最新一条。"""
     from global_events.merge import similarity as _sim
+    def _dup(a, b):
+        a, b = (a or "").strip(), (b or "").strip()
+        if len(a) >= 10 and len(b) >= 10 and (a in b or b in a):   # 短标题是长标题的一部分 (同一消息的简/全版)
+            return True
+        return _sim(a, b) >= _GE_BREAKING_DEDUP_SIM
+
     kept = []
     for it in items:
-        if any(_sim(it["title"], k["title"]) >= _GE_BREAKING_DEDUP_SIM for k in kept):
+        if any(_dup(it["title"], k["title"]) for k in kept):
             continue
         kept.append(it)
     return kept
