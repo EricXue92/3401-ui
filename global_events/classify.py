@@ -17,14 +17,14 @@ MEGA_CAPS = load_static("mega_caps.json")
 
 # 顺序即优先级: 先命中者胜。ASCII 关键词按单词边界匹配 (不区分大小写), 中文按子串。
 CATEGORY_RULES = [
-    ("central_bank", ["联储", "FOMC", "议息", "政策利率", "LPR", "加息", "降息", "缩表",
+    ("cn_policy", ["政治局", "国务院", "发改委", "两会", "中央经济工作会议", "公开市场", "中国央行", "人民银行"]),
+    ("central_bank", ["联储", "FOMC", "央行", "议息", "政策利率", "LPR", "加息", "降息", "缩表",
                       "鲍威尔", "沃什", "植田", "拉加德",
                       "Fed", "Federal Reserve", "rate decision", "ECB", "BOJ", "Bank of England",
                       "interest rate", "interest rates"]),
     ("inflation", ["CPI", "PCE", "PPI", "通胀", "inflation"]),
     ("jobs", ["非农", "失业", "ADP", "就业", "payroll", "payrolls", "jobless", "unemployment"]),
     ("growth", ["GDP", "PMI", "零售销售", "工业产出", "消费者信心", "retail sales"]),
-    ("cn_policy", ["政治局", "国务院", "发改委", "两会", "中央经济工作会议", "公开市场", "中国央行", "人民银行"]),
     ("earnings", ["财报", "业绩", "电话会", "指引", "earnings", "guidance"]),
     ("geopolitics", ["冲突", "袭击", "空袭", "停火", "制裁", "关税", "战争", "封锁", "导弹",
                      "ceasefire", "strike", "strikes", "sanction", "sanctions", "tariff", "tariffs",
