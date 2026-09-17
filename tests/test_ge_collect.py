@@ -53,6 +53,7 @@ class SaveTest(unittest.TestCase):
         self.assertIn("heat_base=VALUES(heat_base)", sql)
         self.assertIn("event_time=VALUES(event_time)", sql)
         self.assertIn("title=VALUES(title)", sql)
+        self.assertIn("category=VALUES(category)", sql)
         self.assertEqual(params[0], "breaking")
         self.assertEqual(params[5], "2026-09-17T12:00:00")     # datetime → ISO
         self.assertEqual(params[7], 42.5)

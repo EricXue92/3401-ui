@@ -156,7 +156,7 @@ def save_global_events(events):
                     reading_num, expected, previous, actual, tickers, source, source_id, url, dedup_key)
                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON DUPLICATE KEY UPDATE
-                     summary=VALUES(summary), importance=VALUES(importance),
+                     summary=VALUES(summary), importance=VALUES(importance), category=VALUES(category),
                      heat_base=VALUES(heat_base), heat_score=VALUES(heat_score),
                      reading_num=VALUES(reading_num), expected=VALUES(expected),
                      previous=VALUES(previous), actual=VALUES(actual),

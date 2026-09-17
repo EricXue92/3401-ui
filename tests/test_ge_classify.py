@@ -14,6 +14,11 @@ class CategorizeTest(unittest.TestCase):
         self.assertEqual(categorize("MPC Official Bank Rate Votes"), "central_bank")
         self.assertEqual(categorize("Monetary Policy Summary"), "central_bank")
 
+    def test_ff_wage_and_claimant_are_jobs_not_earnings(self):
+        self.assertEqual(categorize("Average Earnings Index 3m/y"), "jobs")
+        self.assertEqual(categorize("Claimant Count Change"), "jobs")
+        self.assertEqual(categorize("RBA Gov Bullock Speaks"), "central_bank")
+
     def test_inflation(self):
         self.assertEqual(categorize("8月核心调和CPI同比终值"), "inflation")
         self.assertEqual(categorize("US inflation cools in August"), "inflation")
