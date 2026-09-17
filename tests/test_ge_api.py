@@ -142,10 +142,14 @@ class GlobalEventsApiTest(unittest.TestCase):
                  event_time="2026-09-17 12:00:00", heat_base=80, heat_score=80),          # other 无关键词 → 不入
             _row(kind="breaking", title="特朗普：将对欧盟加征关税", category="geopolitics", importance=4,
                  event_time="2026-09-17 13:00:00", heat_base=90, heat_score=90),
+            _row(kind="breaking", title="Trump emphasizes crime in midterm push", category="geopolitics", importance=2,
+                 event_time="2026-09-17 13:30:00", heat_base=30, heat_score=30),        # 人物词 + 2 星, 无硬词 → 不入
+            _row(kind="breaking", title="沙特输油管道遇袭事件最新进展", category="energy_supply", importance=3,
+                 event_time="2026-09-17 14:05:00", heat_base=60, heat_score=60),          # 与 14:00 那条相似 → 只留最新
         ]}
         j = self._get(rows)
         self.assertEqual([x["title"] for x in j["breaking"]],
-                         ["某国宣布进入紧急状态", "沙特输油管道遇袭", "特朗普：将对欧盟加征关税"])   # 时间倒序
+                         ["某国宣布进入紧急状态", "沙特输油管道遇袭事件最新进展", "特朗普：将对欧盟加征关税"])   # 时间倒序
         self.assertEqual([x["title"] for x in j["today"]], ["特朗普：将对欧盟加征关税"])       # 今日列表仍按 4 星规则
 
     def test_db_failure_returns_empty_not_500(self):

@@ -1358,15 +1358,35 @@ def _ge_is_major(it):
 _GE_BREAKING_CATEGORIES = {"geopolitics", "fin_risk", "energy_supply", "central_bank", "cn_policy"}
 _GE_BREAKING_MIN_IMPORTANCE = 3
 _GE_BREAKING_MAX = 30
-_GE_BREAKING_KEYWORDS = _re.compile(
-    r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|战争|开战|宣战|袭击|空袭|导弹|爆炸|停火|"
-    r"紧急状态|Pentagon|invasion|airstrike|declares war|state of emergency", _re.I)
+# 硬关键词: 战争/关税/制裁/袭击 — 即使只有 2 星 (Google News 单篇) 也进
+_GE_BREAKING_HARD = _re.compile(
+    r"战争|开战|宣战|袭击|空袭|导弹|爆炸|停火|紧急状态|关税|制裁|封锁|军事行动|"
+    r"invasion|airstrike|declares war|state of emergency|tariff|sanction|ceasefire|missile|blockade", _re.I)
+# 人物关键词: 总统/领导人表态 — 需 ≥3 星 (多源同报/财联社 B 级以上) 才进, 避免"特朗普谈犯罪"这类无关报道
+_GE_BREAKING_PERSON = _re.compile(
+    r"特朗普|Trump|白宫|White House|Truth Social|美国总统|习近平|普京|Putin|Pentagon", _re.I)
+_GE_BREAKING_DEDUP_SIM = 0.6
 
 
 def _ge_is_breaking_news(it):
-    if _GE_BREAKING_KEYWORDS.search(it.get("title") or ""):
+    title = it.get("title") or ""
+    imp = int(it.get("importance") or 0)
+    if _GE_BREAKING_HARD.search(title):
         return True
-    return it.get("category") in _GE_BREAKING_CATEGORIES and int(it.get("importance") or 0) >= _GE_BREAKING_MIN_IMPORTANCE
+    if imp < _GE_BREAKING_MIN_IMPORTANCE:
+        return False
+    return it.get("category") in _GE_BREAKING_CATEGORIES or _GE_BREAKING_PERSON.search(title) is not None
+
+
+def _ge_dedupe_breaking(items):
+    """列表已按时间倒序; 相似标题 (difflib ≥ 0.6) 只保留最新一条。"""
+    from global_events.merge import similarity as _sim
+    kept = []
+    for it in items:
+        if any(_sim(it["title"], k["title"]) >= _GE_BREAKING_DEDUP_SIM for k in kept):
+            continue
+        kept.append(it)
+    return kept
 _GE_COLS = ("kind, category, title, summary, country, event_time, importance, heat_base, heat_score, "
             "reading_num, expected, previous, actual, tickers, source, url")
 
@@ -1508,7 +1528,7 @@ def api_global_events():
         upcoming[k].sort(key=lambda x: x["time"])
     upcoming = dict(sorted(upcoming.items()))
     breaking.sort(key=lambda x: x["time"], reverse=True)
-    breaking = breaking[:_GE_BREAKING_MAX]
+    breaking = _ge_dedupe_breaking(breaking)[:_GE_BREAKING_MAX]
     return jsonify({"time_hkt": _iso(now), "window_start": _iso(start), "window_end": _iso(end),
                     "days": days, "today": today, "upcoming": upcoming, "breaking": breaking,
                     "sources": _ge_load_health()})
